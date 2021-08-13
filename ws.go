@@ -7,6 +7,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"os"
 	"sync"
 	"time"
 
@@ -143,4 +144,34 @@ func (p *ProxyWS) Dial() (io.ReadWriteCloser, error) {
 		tr.SetKeepAlive(p.KeepAlive)
 	}
 	return tr, nil
+}
+
+type ProxyWSListener struct {
+	Address string
+}
+
+func (p *ProxyWSListener) handleWSUpgrade(w http.ResponseWriter, r *http.Request) {
+	upgrader := websocket.Upgrader{}
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer conn.Close()
+}
+
+func (p *ProxyWSListener) foo() {
+	handler := http.NewServeMux()
+	handler.HandleFunc("/", p.handleWSUpgrade)
+	srv := &http.Server{
+		Addr:         p.Address,
+		WriteTimeout: time.Second * 15,
+		ReadTimeout:  time.Second * 15,
+		IdleTimeout:  time.Second * 60,
+		Handler:      handler,
+	}
+	if err := srv.ListenAndServe(); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 }
