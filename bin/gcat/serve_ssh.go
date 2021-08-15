@@ -1,11 +1,14 @@
 package main
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
+	"strings"
 
 	"codeberg.org/rumpelsepp/penlogger"
 	"github.com/gliderlabs/ssh"
@@ -14,13 +17,15 @@ import (
 )
 
 type serveSSHCommand struct {
-	logger  *penlogger.Logger
-	opts    *runtimeOptions
-	root    string
-	address string
-	user    string
-	passwd  string
-	shell   string
+	logger         *penlogger.Logger
+	opts           *runtimeOptions
+	hostKey        string
+	authorizedKeys string
+	root           string
+	address        string
+	user           string
+	passwd         string
+	shell          string
 }
 
 func newServerSSHCommand(state *runtimeOptions) *serveSSHCommand {
@@ -152,6 +157,43 @@ func (c *serveSSHCommand) run(cmd *cobra.Command, args []string) error {
 			},
 		}
 	)
+
+	hostKey := c.hostKey
+	if hostKey != "" {
+		if err := ssh.HostKeyFile(hostKey)(&server); err != nil {
+			return err
+		}
+	}
+
+	authorizedKeys := c.authorizedKeys
+	if authorizedKeys != "" {
+		var keys []ssh.PublicKey
+		raw, err := os.ReadFile(authorizedKeys)
+		if err != nil {
+			return err
+		}
+
+		scanner := bufio.NewScanner(strings.NewReader(string(raw)))
+		for scanner.Scan() {
+			key, _, _, _, err := ssh.ParseAuthorizedKey(scanner.Bytes())
+			if err != nil {
+				c.logger.LogWarning("Encountered error while parsing public key:", err)
+				continue
+			}
+			keys = append(keys, key)
+		}
+
+		server.PublicKeyHandler = func(ctx ssh.Context, key ssh.PublicKey) bool {
+			for _, authKey := range keys {
+				if bytes.Equal(key.Marshal(), authKey.Marshal()) {
+					c.logger.LogInfof("Successful authentication with ssh key from %s@%s", ctx.User(), ctx.RemoteAddr().String())
+					return true
+				}
+			}
+			c.logger.LogNoticef("Invalid ssh key from %s@%s", ctx.User(), ctx.RemoteAddr().String())
+			return false
+		}
+	}
 
 	if err := server.ListenAndServe(); err != nil {
 		return err

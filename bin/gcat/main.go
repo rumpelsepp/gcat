@@ -84,6 +84,8 @@ func main() {
 	sshFlags.StringVarP(&serveSSHCmd.user, "user", "u", "gcat", "SSH user")
 	sshFlags.StringVarP(&serveSSHCmd.passwd, "passwd", "p", "gcat", "SSH password")
 	sshFlags.StringVarP(&serveSSHCmd.shell, "shell", "s", "/bin/bash", "Shell to use")
+	sshFlags.StringVarP(&serveSSHCmd.hostKey, "host-key", "k", "", "Path to host key file, if empty a random key is generated")
+	sshFlags.StringVarP(&serveSSHCmd.authorizedKeys, "authorized-keys", "a", "", "Path to authorized_keys file")
 
 	// Wire everything up.
 	rootCobraCmd.Execute()
