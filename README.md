@@ -24,3 +24,9 @@ $ gcat proxy tcp-listen://localhost:1234 -
 ```
 $ gcat serve http
 ```
+
+### SSH Server with Host Key and authorized\_keys
+
+```
+$ gcat serve ssh -k /etc/ssh/ssh_host_ed25519_key -a ~/.ssh/authorized_keys
+```
