@@ -9,11 +9,11 @@ import (
 type ProxyTLS struct {
 	Network string
 	Address string
-	Config  *tls.Config
+	Dialer  *tls.Dialer
 }
 
 func (p *ProxyTLS) Dial() (io.ReadWriteCloser, error) {
-	return tls.Dial(p.Network, p.Address, p.Config) // TODO: use interal dialer to make use of timeouts and shit
+	return p.Dialer.Dial(p.Network, p.Address)
 }
 
 type ProxyTLSListener struct {

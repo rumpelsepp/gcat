@@ -1,5 +1,3 @@
-// +build windows
-
 // reverseSSH - a lightweight ssh server with a reverse connection feature
 // Copyright (C) 2021  Ferdinor <ferdinor@mailbox.org>
 
@@ -16,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+// Copied verbatim from reverse-ssh. Not tested by the author of gcat!
+
 package main
 
 import (
@@ -30,7 +30,7 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-func createPty(s ssh.Session, shell string) {
+func (c *serveSSHCommand) createPty(s ssh.Session, shell string) {
 	ptyReq, winCh, _ := s.Pty()
 	vsn := windows.RtlGetVersion()
 

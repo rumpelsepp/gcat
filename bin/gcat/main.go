@@ -1,12 +1,16 @@
 package main
 
 import (
+	"codeberg.org/rumpelsepp/penlogger"
 	"github.com/spf13/cobra"
 )
 
+// TODO: find a better name for this. :)
 type runtimeOptions struct {
+	logger *penlogger.Logger
+
 	keepRunning bool
-	serve       bool
+	verbose     bool
 }
 
 func main() {
@@ -14,7 +18,7 @@ func main() {
 		opts         runtimeOptions
 		serveFTPCmd  = serveFTPCommand{opts: &opts}
 		serveHTTPCmd = serveHTTPCommand{opts: &opts}
-		serveSSHCmd  = serveSSHCommand{opts: &opts}
+		serveSSHCmd  = newServerSSHCommand(&opts)
 		proxyCmd     = proxyCommand{opts: &opts}
 	)
 
@@ -45,12 +49,13 @@ func main() {
 	)
 
 	// globals
-	// globalFlags := rootCobraCmd.PersistentFlags()
-	// globalFlags.BoolVarP(&opts.keepRunning, "keep", "k", false, "Keep the listener running")
+	globalFlags := rootCobraCmd.PersistentFlags()
+	globalFlags.BoolVarP(&opts.verbose, "verbose", "v", false, "Enable verbose logging")
 
 	// proxy
 	rootCobraCmd.AddCommand(proxyCobraCmd)
 	proxyFlags := proxyCobraCmd.Flags()
+	// TODO: Can this live in the proxy cmd struct instead?
 	proxyFlags.BoolVarP(&opts.keepRunning, "keep", "k", false, "Keep the listener running")
 
 	// serve

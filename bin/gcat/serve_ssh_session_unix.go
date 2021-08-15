@@ -1,5 +1,3 @@
-// +build !windows
-
 // reverseSSH - a lightweight ssh server with a reverse connection feature
 // Copyright (C) 2021  Ferdinor <ferdinor@mailbox.org>
 
@@ -16,27 +14,32 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
-	"log"
+	"os"
 	"os/exec"
 
 	"github.com/creack/pty"
 	"github.com/gliderlabs/ssh"
 )
 
-func createPty(s ssh.Session, shell string) {
-	ptyReq, winCh, _ := s.Pty()
+func (c *serveSSHCommand) createPty(s ssh.Session, shell string) {
+	var (
+		ptyReq, winCh, _ = s.Pty()
+		ctx, cancel      = context.WithCancel(context.Background())
+		cmd              = exec.CommandContext(ctx, shell)
+	)
+	defer cancel()
 
-	cmd := exec.Command(shell)
 	cmd.Env = append(cmd.Env, fmt.Sprintf("TERM=%s", ptyReq.Term))
 	f, err := pty.Start(cmd)
 	if err != nil {
-		log.Fatalln("Could not start shell:", err)
+		c.logger.LogCriticalf("Could not start shell:", err)
+		os.Exit(1)
 	}
 	go func() {
 		for win := range winCh {
@@ -48,24 +51,18 @@ func createPty(s ssh.Session, shell string) {
 	go io.Copy(f, s)
 	go io.Copy(s, f)
 
-	done := make(chan error, 1)
-	go func() { done <- cmd.Wait() }()
+	if err := cmd.Wait(); err != nil {
+		c.logger.LogErrorf("Session ended with error:", err)
+		s.Exit(255)
+		return
+	}
 
-	select {
-	case err := <-done:
-		if err != nil {
-			log.Println("Session ended with error:", err)
-		} else {
-			log.Println("Session ended normally")
-		}
+	if cmd.ProcessState != nil {
 		s.Exit(cmd.ProcessState.ExitCode())
-
-	case <-s.Context().Done():
-		log.Println("Session closed by remote, killing dangling process")
-		if cmd.Process != nil && cmd.ProcessState == nil {
-			if err := cmd.Process.Kill(); err != nil {
-				log.Println("Failed to kill process:", err)
-			}
-		}
+	} else {
+		// When the process state is not populated something strange
+		// happenend. I would consider this a bug that I overlooked.
+		c.logger.LogErrorf("Unknown error happenend. Bug?\n")
+		c.logger.LogErrorf("You may report it: https://codeberg.org/rumpelsepp/gcat/issues\n")
 	}
 }

@@ -44,6 +44,7 @@ func setupProxy(u *url.URL) (interface{}, error) {
 	case ProxySchemeSTDIO:
 		return gcat.NewStdioWrapper(), nil
 
+	// TODO: implement dialer
 	case ProxySchemeTCP:
 		return &gcat.ProxyTCP{
 			Address: u.Host,
@@ -56,14 +57,14 @@ func setupProxy(u *url.URL) (interface{}, error) {
 			Network: "tcp",
 		}, nil
 
+	// TODO: implement dialer and tls config parsing
 	case ProxySchemeTLS:
-		config := &tls.Config{}
 		return &gcat.ProxyTLS{
 			Address: u.Host,
-			Config:  config,
 			Network: "tcp",
 		}, nil
 
+	// TODO: implement tls config parsing
 	case ProxySchemeTLSListen:
 		config := &tls.Config{}
 		return &gcat.ProxyTLSListener{

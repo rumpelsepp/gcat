@@ -1,16 +1,20 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"io"
-	"log"
+	"os"
 	"os/exec"
 
+	"codeberg.org/rumpelsepp/penlogger"
 	"github.com/gliderlabs/ssh"
 	"github.com/pkg/sftp"
 	"github.com/spf13/cobra"
 )
 
 type serveSSHCommand struct {
+	logger  *penlogger.Logger
 	opts    *runtimeOptions
 	root    string
 	address string
@@ -19,84 +23,95 @@ type serveSSHCommand struct {
 	shell   string
 }
 
-func sftpHandler(s ssh.Session) {
-	server, err := sftp.NewServer(s)
-	if err != nil {
-		log.Printf("Sftp server init error: %s\n", err)
-		return
-	}
-
-	log.Printf("New sftp connection from %s", s.RemoteAddr().String())
-	if err := server.Serve(); err == io.EOF {
-		server.Close()
-		log.Println("Sftp connection closed by client")
-	} else if err != nil {
-		log.Println("Sftp server exited with error:", err)
+func newServerSSHCommand(state *runtimeOptions) *serveSSHCommand {
+	return &serveSSHCommand{
+		logger: penlogger.NewLogger("ssh", os.Stderr),
+		opts:   state,
 	}
 }
 
-func makeSSHSessionHandler(shell string) ssh.Handler {
+func (c *serveSSHCommand) sftpHandler(s ssh.Session) {
+	server, err := sftp.NewServer(s)
+	if err != nil {
+		c.logger.LogErrorf("SFTP server init error: %s\n", err)
+		return
+	}
+
+	c.logger.LogDebugf("New SFTP connection from %s", s.RemoteAddr().String())
+	if err := server.Serve(); err == io.EOF {
+		server.Close()
+		c.logger.LogDebug("SFTP connection closed by client")
+	} else if err != nil {
+		c.logger.LogErrorf("SFTP server exited with error: %s", err)
+	}
+}
+
+func (c *serveSSHCommand) makeSSHSessionHandler(shell string) ssh.Handler {
 	return func(s ssh.Session) {
-		log.Printf("New login from %s@%s", s.User(), s.RemoteAddr().String())
+		c.logger.LogInfof("New login from %s@%s", s.User(), s.RemoteAddr().String())
 		_, _, isPty := s.Pty()
 
 		switch {
 		case isPty:
-			log.Println("PTY requested")
-
-			createPty(s, shell)
+			c.logger.LogDebug("PTY requested")
+			// TODO: better function sig, error handling.
+			c.createPty(s, shell)
 
 		case len(s.Command()) > 0:
-			log.Printf("No PTY requested, executing command: '%s'", s.RawCommand())
+			c.logger.LogInfo("No PTY requested, executing command: '%s'", s.RawCommand())
 
-			cmd := exec.Command(s.Command()[0], s.Command()[1:]...)
-			// We use StdinPipe to avoid blocking on missing input
-			if stdIn, err := cmd.StdinPipe(); err != nil {
-				log.Println("Could not initialize StdInPipe", err)
+			var (
+				ctx, cancel = context.WithCancel(context.Background())
+				cmd         = exec.CommandContext(ctx, s.Command()[0], s.Command()[1:]...)
+			)
+			defer cancel()
+
+			if stdin, err := cmd.StdinPipe(); err != nil {
+				c.logger.LogError("Could not initialize StdinPipe", err)
 				s.Exit(1)
 				return
 			} else {
 				go func() {
-					if _, err := io.Copy(stdIn, s); err != nil {
-						log.Printf("Error while copying input from %s to stdIn: %s", s.RemoteAddr().String(), err)
+					if _, err := io.Copy(stdin, s); err != nil {
+						c.logger.LogErrorf("Error while copying input from %s to stdin: %s", s.RemoteAddr().String(), err)
 					}
-					if err := stdIn.Close(); err != nil {
-						log.Println("Error while closing stdInPipe:", err)
-					}
+					// When the copy returns, kill the child process
+					// by cancelling the context. Everything is cleaned
+					// up automatically.
+					cancel()
 				}()
 			}
+
 			cmd.Stdout = s
 			cmd.Stderr = s
 
-			done := make(chan error, 1)
-			go func() { done <- cmd.Run() }()
+			logError := func(f string, v ...interface{}) {
+				c.logger.LogErrorf(f, v...)
+				fmt.Fprintf(s, f, v...)
+			}
 
-			select {
-			case err := <-done:
-				if err != nil {
-					log.Println("Command execution failed:", err)
-					io.WriteString(s, "Command execution failed: "+err.Error())
-				} else {
-					log.Println("Command execution successful")
-				}
+			if err := cmd.Run(); err != nil {
+				logError("Command execution failed: %s\n", err)
+				s.Exit(255)
+				return
+			}
+			if err := ctx.Err(); err != nil {
+				logError("Command execution failed: %s\n", err)
+				s.Exit(254)
+				return
+			}
+
+			if cmd.ProcessState != nil {
 				s.Exit(cmd.ProcessState.ExitCode())
-
-			case <-s.Context().Done():
-				log.Println("Session closed by remote, killing dangling process")
-				if cmd.Process != nil && cmd.ProcessState == nil {
-					if err := cmd.Process.Kill(); err != nil {
-						log.Println("Failed to kill process:", err)
-					}
-				}
+				// When the process state is not populated something strange
+				// happenend. I would consider this a bug that I overlooked.
+			} else {
+				logError("Unknown error happenend. Bug?\n")
+				logError("You may report it: https://codeberg.org/rumpelsepp/gcat/issues\n")
 			}
 
 		default:
-			log.Println("No PTY requested, no command supplied")
-
-			select {
-			case <-s.Context().Done():
-				log.Println("Session closed")
-			}
+			c.logger.LogError("No PTY requested, no command supplied")
 		}
 	}
 }
@@ -105,25 +120,25 @@ func (c *serveSSHCommand) run(cmd *cobra.Command, args []string) error {
 	var (
 		forwardHandler = &ssh.ForwardedTCPHandler{}
 		server         = ssh.Server{
-			Handler: makeSSHSessionHandler(c.shell),
+			Handler: c.makeSSHSessionHandler(c.shell),
 			Addr:    c.address,
-			PasswordHandler: ssh.PasswordHandler(func(ctx ssh.Context, pass string) bool {
+			PasswordHandler: func(ctx ssh.Context, pass string) bool {
 				passed := pass == c.passwd
 				if passed {
-					log.Printf("Successful authentication with password from %s@%s", ctx.User(), ctx.RemoteAddr().String())
+					c.logger.LogInfof("Successful authentication with password from %s@%s", ctx.User(), ctx.RemoteAddr().String())
 				} else {
-					log.Printf("Invalid password from %s@%s", ctx.User(), ctx.RemoteAddr().String())
+					c.logger.LogWarningf("Invalid password from %s@%s", ctx.User(), ctx.RemoteAddr().String())
 				}
 				return passed
-			}),
-			LocalPortForwardingCallback: ssh.LocalPortForwardingCallback(func(ctx ssh.Context, dhost string, dport uint32) bool {
-				log.Printf("Accepted forward to %s:%d", dhost, dport)
+			},
+			LocalPortForwardingCallback: func(ctx ssh.Context, dhost string, dport uint32) bool {
+				c.logger.LogInfof("Accepted forward to %s:%d", dhost, dport)
 				return true
-			}),
-			ReversePortForwardingCallback: ssh.ReversePortForwardingCallback(func(ctx ssh.Context, host string, port uint32) bool {
-				log.Printf("Attempt to bind at %s:%d granted", host, port)
+			},
+			ReversePortForwardingCallback: func(ctx ssh.Context, host string, port uint32) bool {
+				c.logger.LogInfof("Attempt to bind at %s:%d granted", host, port)
 				return true
-			}),
+			},
 			ChannelHandlers: map[string]ssh.ChannelHandler{
 				"direct-tcpip": ssh.DirectTCPIPHandler,
 				"session":      ssh.DefaultSessionHandler,
@@ -133,7 +148,7 @@ func (c *serveSSHCommand) run(cmd *cobra.Command, args []string) error {
 				"cancel-tcpip-forward": forwardHandler.HandleSSHRequest,
 			},
 			SubsystemHandlers: map[string]ssh.SubsystemHandler{
-				"sftp": sftpHandler,
+				"sftp": c.sftpHandler,
 			},
 		}
 	)

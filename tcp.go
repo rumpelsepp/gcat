@@ -8,10 +8,11 @@ import (
 type ProxyTCP struct {
 	Network string
 	Address string
+	Dialer  net.Dialer
 }
 
 func (p *ProxyTCP) Dial() (io.ReadWriteCloser, error) {
-	return net.Dial(p.Network, p.Address) // TODO: use interal dialer to make use of timeouts and shit
+	return p.Dialer.Dial(p.Network, p.Address)
 }
 
 type ProxyTCPListener struct {
