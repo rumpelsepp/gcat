@@ -10,7 +10,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"codeberg.org/rumpelsepp/penlogger"
+	"github.com/Fraunhofer-AISEC/penlogger"
 	"github.com/gliderlabs/ssh"
 	"github.com/pkg/sftp"
 	"github.com/spf13/cobra"

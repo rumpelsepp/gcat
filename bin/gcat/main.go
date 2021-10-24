@@ -1,7 +1,7 @@
 package main
 
 import (
-	"codeberg.org/rumpelsepp/penlogger"
+	"github.com/Fraunhofer-AISEC/penlogger"
 	"github.com/spf13/cobra"
 )
 
