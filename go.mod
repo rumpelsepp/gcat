@@ -12,7 +12,7 @@ require (
 	github.com/pkg/sftp v1.13.4
 	github.com/spf13/cobra v1.2.1
 	goftp.io/server/v2 v2.0.0
-	golang.org/x/sys v0.0.0-20211023085530-d6a326fbbf70
+	golang.org/x/sys v0.0.0-20211111213525-f221eed1c01e
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
 )
 

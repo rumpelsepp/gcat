@@ -36,14 +36,17 @@ func main() {
 		}
 		serveFTPCobraCmd = &cobra.Command{
 			Use:  "ftp",
+			Short: "Spawn a FTP server",
 			RunE: serveFTPCmd.run,
 		}
 		serveHTTPCobraCmd = &cobra.Command{
 			Use:  "http",
+			Short: "Spawn a HTTP server",
 			RunE: serveHTTPCmd.run,
 		}
 		serveSSHCobraCmd = &cobra.Command{
 			Use:  "ssh",
+			Short: "Spawn a SSH server with SFTP support",
 			RunE: serveSSHCmd.run,
 		}
 	)
