@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -97,7 +96,7 @@ func (h *dohServer) getRequest(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *dohServer) postRequest(w http.ResponseWriter, r *http.Request) {
-	rawQuestion, err := ioutil.ReadAll(r.Body)
+	rawQuestion, err := io.ReadAll(r.Body)
 	if err != nil {
 		fmt.Println(err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
