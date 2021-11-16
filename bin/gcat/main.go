@@ -16,6 +16,7 @@ type runtimeOptions struct {
 func main() {
 	var (
 		opts         runtimeOptions
+		serveDOHCmd  = serveDOHCommand{opts: &opts}
 		serveFTPCmd  = serveFTPCommand{opts: &opts}
 		serveHTTPCmd = serveHTTPCommand{opts: &opts}
 		serveSSHCmd  = newServerSSHCommand(&opts)
@@ -28,26 +29,32 @@ func main() {
 			Short: "gcat",
 		}
 		serveCobraCmd = &cobra.Command{
-			Use: "serve",
+			Use:   "serve",
+			Short: "Run a specific service",
 		}
 		proxyCobraCmd = &cobra.Command{
 			Use:  "proxy",
 			RunE: proxyCmd.run,
 		}
+		serveDOHCobraCmd = &cobra.Command{
+			Use:   "doh",
+			Short: "Spawn a DOH server",
+			RunE:  serveDOHCmd.run,
+		}
 		serveFTPCobraCmd = &cobra.Command{
-			Use:  "ftp",
+			Use:   "ftp",
 			Short: "Spawn a FTP server",
-			RunE: serveFTPCmd.run,
+			RunE:  serveFTPCmd.run,
 		}
 		serveHTTPCobraCmd = &cobra.Command{
-			Use:  "http",
+			Use:   "http",
 			Short: "Spawn a HTTP server",
-			RunE: serveHTTPCmd.run,
+			RunE:  serveHTTPCmd.run,
 		}
 		serveSSHCobraCmd = &cobra.Command{
-			Use:  "ssh",
+			Use:   "ssh",
 			Short: "Spawn a SSH server with SFTP support",
-			RunE: serveSSHCmd.run,
+			RunE:  serveSSHCmd.run,
 		}
 	)
 
@@ -63,6 +70,14 @@ func main() {
 
 	// serve
 	rootCobraCmd.AddCommand(serveCobraCmd)
+
+	// doh
+	serveCobraCmd.AddCommand(serveDOHCobraCmd)
+	dohFlags := serveDOHCobraCmd.Flags()
+	dohFlags.StringVarP(&serveDOHCmd.listen, "listen", "l", "127.0.0.1:8053", "Listen on this address:port")
+	dohFlags.StringVarP(&serveDOHCmd.path, "path", "p", "/dns-query", "Specify HTTP path")
+	dohFlags.StringVarP(&serveDOHCmd.requestLog, "request-log", "r", "", "Request logfile, `-` means stderr")
+	dohFlags.StringVarP(&serveDOHCmd.upstream, "upstream", "u", "udp://127.0.0.1:53", "Upstream DNS resolver, concatenate with `|`")
 
 	// ftp
 	serveCobraCmd.AddCommand(serveFTPCobraCmd)
