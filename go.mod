@@ -4,6 +4,7 @@ go 1.17
 
 require (
 	codeberg.org/rumpelsepp/helpers v0.0.0-20211020091314-b9b064cf8c8a
+	codeberg.org/rumpelsepp/socks5 v0.0.0-20211118122615-8b852ab4b838
 	github.com/ActiveState/termtest/conpty v0.5.0
 	github.com/Fraunhofer-AISEC/penlogger v0.0.0-20210914113712-8a2b1758b080
 	github.com/creack/pty v1.1.17
@@ -15,7 +16,8 @@ require (
 	github.com/pkg/sftp v1.13.4
 	github.com/spf13/cobra v1.2.1
 	goftp.io/server/v2 v2.0.0
-	golang.org/x/sys v0.0.0-20211116061358-0a5406a5449c
+	golang.org/x/net v0.0.0-20211112202133-69e39bad7dc2
+	golang.org/x/sys v0.0.0-20211117180635-dee7805ff2e1
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
 )
 
@@ -28,6 +30,5 @@ require (
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/kr/fs v0.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519 // indirect
-	golang.org/x/net v0.0.0-20210405180319-a5a99cb37ef4 // indirect
+	golang.org/x/crypto v0.0.0-20211117183948-ae814b36b871 // indirect
 )

@@ -19,6 +19,7 @@ func main() {
 		serveDOHCmd    = serveDOHCommand{opts: &opts}
 		serveFTPCmd    = serveFTPCommand{opts: &opts}
 		serveHTTPCmd   = serveHTTPCommand{opts: &opts}
+		serveSOCKS5Cmd = serveSOCKS5Command{opts: &opts}
 		serveSSHCmd    = newServerSSHCommand(&opts)
 		serveWebDAVCmd = serveWebDAVCommand{opts: &opts}
 		proxyCmd       = proxyCommand{opts: &opts}
@@ -51,6 +52,11 @@ func main() {
 			Use:   "http",
 			Short: "Spawn a HTTP server",
 			RunE:  serveHTTPCmd.run,
+		}
+		serveSOCKS5CobraCmd = &cobra.Command{
+			Use:   "socks5",
+			Short: "Spawn a SOCKS5 server",
+			RunE:  serveSOCKS5Cmd.run,
 		}
 		serveSSHCobraCmd = &cobra.Command{
 			Use:   "ssh",
@@ -99,6 +105,13 @@ func main() {
 	httpFlags.StringVarP(&serveHTTPCmd.address, "address", "a", ":8080", "Listen address")
 	httpFlags.StringVarP(&serveHTTPCmd.root, "root", "r", ".", "HTTP root directory")
 	httpFlags.StringVarP(&serveHTTPCmd.path, "path", "p", "/", "HTTP path")
+
+	// socks5
+	serveCobraCmd.AddCommand(serveSOCKS5CobraCmd)
+	socks5Flags := serveSOCKS5CobraCmd.Flags()
+	socks5Flags.StringVarP(&serveSOCKS5Cmd.listen, "listen", "l", ":1080", "listen address")
+	socks5Flags.StringVarP(&serveSOCKS5Cmd.listen, "username", "u", "", "specify a username")
+	socks5Flags.StringVarP(&serveSOCKS5Cmd.listen, "password", "p", "", "specify a password")
 
 	// ssh
 	// TODO: Add flags for ssh host keys and such
