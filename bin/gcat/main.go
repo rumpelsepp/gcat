@@ -15,12 +15,13 @@ type runtimeOptions struct {
 
 func main() {
 	var (
-		opts         runtimeOptions
-		serveDOHCmd  = serveDOHCommand{opts: &opts}
-		serveFTPCmd  = serveFTPCommand{opts: &opts}
-		serveHTTPCmd = serveHTTPCommand{opts: &opts}
-		serveSSHCmd  = newServerSSHCommand(&opts)
-		proxyCmd     = proxyCommand{opts: &opts}
+		opts           runtimeOptions
+		serveDOHCmd    = serveDOHCommand{opts: &opts}
+		serveFTPCmd    = serveFTPCommand{opts: &opts}
+		serveHTTPCmd   = serveHTTPCommand{opts: &opts}
+		serveSSHCmd    = newServerSSHCommand(&opts)
+		serveWebDAVCmd = serveWebDAVCommand{opts: &opts}
+		proxyCmd       = proxyCommand{opts: &opts}
 	)
 
 	var (
@@ -55,6 +56,11 @@ func main() {
 			Use:   "ssh",
 			Short: "Spawn a SSH server with SFTP support",
 			RunE:  serveSSHCmd.run,
+		}
+		serveWebDAVCobraCmd = &cobra.Command{
+			Use:   "webdav",
+			Short: "Spawn a WebDAV server",
+			RunE:  serveWebDAVCmd.run,
 		}
 	)
 
@@ -104,6 +110,12 @@ func main() {
 	sshFlags.StringVarP(&serveSSHCmd.shell, "shell", "s", "/bin/bash", "Shell to use")
 	sshFlags.StringVarP(&serveSSHCmd.hostKey, "host-key", "k", "", "Path to host key file, if empty a random key is generated")
 	sshFlags.StringVarP(&serveSSHCmd.authorizedKeys, "authorized-keys", "a", "", "Path to authorized_keys file")
+
+	// webdav
+	serveCobraCmd.AddCommand(serveWebDAVCobraCmd)
+	webdavFlags := serveWebDAVCobraCmd.Flags()
+	webdavFlags.StringVarP(&serveWebDAVCmd.address, "listen", "l", "127.0.0.1:8000", "Listen on this address:port")
+	webdavFlags.StringVarP(&serveWebDAVCmd.root, "root", "r", "", "Directory root; default is CWD")
 
 	// Wire everything up.
 	rootCobraCmd.Execute()
