@@ -4,11 +4,10 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"net"
 	"os"
-	"os/exec"
 	"unsafe"
 
+	"github.com/vishvananda/netlink"
 	"golang.org/x/sys/unix"
 )
 
@@ -152,25 +151,19 @@ func (tun *NativeTun) SetUP() error {
 	return netdevSetShort(tun.name, unix.SIOCSIFFLAGS, flags)
 }
 
-// FIXME: convert to netlink or something more native
-// https://stackoverflow.com/a/49334944
 func (tun *NativeTun) AddAddressCIDR(cidrAddr string) error {
-	ip, _, err := net.ParseCIDR(cidrAddr)
+	iface, err := netlink.LinkByName(tun.name)
 	if err != nil {
 		return err
 	}
 
-	if ip.To4() != nil {
-		out, err := exec.Command("ip", "address", "add", cidrAddr, "dev", tun.name).CombinedOutput()
-		if err != nil {
-			return fmt.Errorf("%s: %s", err, string(out))
-		}
-	} else {
-		out, err := exec.Command("ip", "-6", "address", "add", cidrAddr, "dev", tun.name).CombinedOutput()
-		if err != nil {
-			return fmt.Errorf("%s: %s", err, string(out))
-		}
+	addr, err := netlink.ParseAddr(cidrAddr)
+	if err != nil {
+		return err
 	}
 
+	if err := netlink.AddrAdd(iface, addr); err != nil {
+		return err
+	}
 	return nil
 }

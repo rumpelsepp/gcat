@@ -30,5 +30,7 @@ require (
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/kr/fs v0.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
+	github.com/vishvananda/netlink v1.1.0 // indirect
+	github.com/vishvananda/netns v0.0.0-20191106174202-0a2b9b5464df // indirect
 	golang.org/x/crypto v0.0.0-20211117183948-ae814b36b871 // indirect
 )
