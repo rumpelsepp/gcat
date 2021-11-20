@@ -6,7 +6,7 @@ import (
 
 type TunDevice interface {
 	io.ReadWriteCloser
-	MTU() (int, error)
+	MTU() int
 	SetMTU(mtu int) error
 	SetUP() error
 	AddAddressCIDR(addrCIDR string) error
