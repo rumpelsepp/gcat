@@ -87,9 +87,10 @@ Allocate a `tun` device and proxy ip traffic.
 
 Arguments:
 
-- Host: Device name; can include `%d` for letting the kernel chose an index.
+- Host: IP address to assign to the device
 - Path: Subnet Mask 
 - mtu: The MTU of the `tun` device (default 1500) 
+- dev: Device name; can include `%d` for letting the kernel chose an index.
 
 Example:
 
