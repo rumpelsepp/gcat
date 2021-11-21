@@ -3,6 +3,8 @@ package gcat
 import (
 	"fmt"
 	"os"
+	"os/user"
+	"strconv"
 
 	"github.com/vishvananda/netlink"
 )
@@ -16,12 +18,29 @@ func CreateTun(name string) (TunDevice, error) {
 	la := netlink.NewLinkAttrs()
 	la.Name = name
 
+	u, err := user.Current()
+	if err != nil {
+		return nil, err
+	}
+
+	uid, err := strconv.Atoi(u.Uid)
+	if err != nil {
+		return nil, err
+	}
+
+	gid, err := strconv.Atoi(u.Gid)
+	if err != nil {
+		return nil, err
+	}
+
 	link := &netlink.Tuntap{
 		LinkAttrs:  la,
 		Mode:       netlink.TUNTAP_MODE_TUN,
 		Flags:      netlink.TUNTAP_DEFAULTS | netlink.TUNTAP_NO_PI,
 		NonPersist: true,
 		Queues:     1,
+		Owner:      uint32(uid),
+		Group:      uint32(gid),
 	}
 
 	if err := netlink.LinkAdd(link); err != nil {
