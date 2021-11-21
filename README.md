@@ -125,6 +125,12 @@ $ gcat proxy tcp-listen://localhost:1234 tcp://1.1.1.1:80
 # gcat proxy "tun://192.168.255.1/24" exec:'ssh -l root HOST "gcat tun://192.168.255.2/24"'
 ```
 
+[SSH Tunnel through Websocket](https://rumpelsepp.org/blog/ssh-through-websocket/):
+
+```
+$ ssh -o 'ProxyCommand=gcat proxy wss://example.org/ssh/' user@example.org
+```
+
 ### HTTP Server
 
 ```
