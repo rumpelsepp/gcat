@@ -162,7 +162,7 @@ func connect(proxy interface{}) (io.ReadWriteCloser, error) {
 func fixupURL(rawURL string) string {
 	if rawURL == "-" {
 		return "stdio:"
-	} else if strings.HasPrefix(rawURL, "exec:") {
+	} else if strings.HasPrefix(rawURL, "exec:") && !strings.Contains(rawURL, "?") {
 		cmdEncoded := url.QueryEscape(strings.TrimPrefix(rawURL, "exec:"))
 		return fmt.Sprintf("exec:?cmd=%s", cmdEncoded)
 	} else {
