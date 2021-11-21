@@ -5,8 +5,8 @@ Its design is roughly based on `socat` (hence the name).
 However, `gcat` provides the following delta to `socat`:
 
 - `serve` command: `gcat` allows starting several different servers for quick usage.
-  The authors main purpose might be penetration tests or quick 'n' dirty lab setups.
-  Here is an excerpt for supported protocols: `ftp`, `http`, `ssh`, `webdav`.
+  The `serve` command might be used in penetration tests or quick 'n' dirty lab setups.
+  Here is an excerpt for supported protocols: `doh`, `ftp`, `http`, `ssh`, `webdav`.
 
 - `proxy` command: it works similar to `socat`. Data is proxied between two proxy modules, 
   specified as command line arguments. The `proxy` command uses URLs for its arguments.
@@ -99,6 +99,11 @@ $ gcat proxy 'tun://10.0.0.1/24?dev=tun%d'
 ```
 
 Note: Root permissions or `CAP_NET_ADMIN` required.
+
+## Serve 
+
+The `serve` command is implemented with a traditional command line interface.
+Just try out the `--help` pages.
 
 ## Examples
 
