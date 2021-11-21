@@ -119,7 +119,7 @@ Forward TCP traffic from `localhost:8080` to `1.1.1.1:80`:
 $ gcat proxy tcp-listen://localhost:1234 tcp://1.1.1.1:80
 ```
 
-[Tunnel IP traffic through SSH](https://rumpelsepp.org/blog/vpn-over-ssh/) (an SSH proxy might eventually be included as well):
+[Tunnel IP traffic through SSH](https://rumpelsepp.org/blog/vpn-over-ssh/):
 
 ```
 # gcat proxy "tun://192.168.255.1/24" exec:'ssh -l root HOST "gcat tun://192.168.255.2/24"'
