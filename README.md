@@ -95,7 +95,7 @@ Arguments:
 Example:
 
 ```
-$ gcat proxy 'tun://10.0.0.1/24?dev=tun%d'
+# gcat proxy 'tun://10.0.0.1/24?dev=tun%d'
 ```
 
 Note: Root permissions or `CAP_NET_ADMIN` required.
@@ -117,6 +117,12 @@ Forward TCP traffic from `localhost:8080` to `1.1.1.1:80`:
 
 ```
 $ gcat proxy tcp-listen://localhost:1234 tcp://1.1.1.1:80
+```
+
+[Tunnel IP traffic through SSH](https://rumpelsepp.org/blog/vpn-over-ssh/) (an SSH proxy might eventually be included as well):
+
+```
+# gcat proxy "tun://192.168.255.1/24" exec:'ssh -l root HOST "gcat tun://192.168.255.2/24"'
 ```
 
 ### HTTP Server
