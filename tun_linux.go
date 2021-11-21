@@ -58,6 +58,9 @@ func CreateTun(name string) (TunDevice, error) {
 }
 
 func (tun *NativeTun) Close() error {
+	if err := tun.File.Close(); err != nil {
+		return err
+	}
 	if err := netlink.LinkSetDown(tun.Link); err != nil {
 		return err
 	}
@@ -89,6 +92,5 @@ func (tun *NativeTun) AddAddressCIDR(cidrAddr string) error {
 	if err := netlink.AddrAdd(tun.Link, addr); err != nil {
 		return err
 	}
-
 	return nil
 }
