@@ -145,8 +145,7 @@ type serveDOHCommand struct {
 func (c *serveDOHCommand) run(cmd *cobra.Command, args []string) error {
 	upstreams, err := parseUpstreams(c.upstream)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		return err
 	}
 
 	doh := dohServer{
@@ -163,10 +162,10 @@ func (c *serveDOHCommand) run(cmd *cobra.Command, args []string) error {
 		} else {
 			f, err := os.Open(c.requestLog)
 			if err != nil {
-				fmt.Println(err)
-				os.Exit(1)
+				return err
 			}
 			h = handlers.LoggingHandler(f, r)
+			defer f.Close()
 		}
 	}
 

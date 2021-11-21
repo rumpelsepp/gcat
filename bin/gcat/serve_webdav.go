@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"net/http"
 	"time"
 
@@ -21,9 +20,9 @@ func (c *serveWebDAVCommand) run(cmd *cobra.Command, args []string) error {
 		LockSystem: webdav.NewMemLS(),
 		Logger: func(r *http.Request, err error) {
 			if err != nil {
-				log.Printf("WEBDAV [%s]: %s, ERROR: %s\n", r.Method, r.URL, err)
+				cmd.Printf("[%s]: %s, ERROR: %s\n", r.Method, r.URL, err)
 			} else {
-				log.Printf("WEBDAV [%s]: %s \n", r.Method, r.URL)
+				cmd.Printf("[%s]: %s \n", r.Method, r.URL)
 			}
 		},
 	}
