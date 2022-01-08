@@ -18,6 +18,7 @@ import (
 
 const (
 	ProxySchemeExec      = "exec"
+	ProxySchemePTY       = "pty"
 	ProxySchemeSTDIO     = "stdio"
 	ProxySchemeTCP       = "tcp"
 	ProxySchemeTCPListen = "tcp-listen"
@@ -38,6 +39,15 @@ func setupProxy(u *url.URL) (interface{}, error) {
 			cmdParts = strings.Split(cmd, " ")
 		)
 		return &gcat.ProxyExec{
+			Command: exec.Command(cmdParts[0], cmdParts[1:]...),
+		}, nil
+
+	case ProxySchemePTY:
+		var (
+			cmd      = query.Get("cmd")
+			cmdParts = strings.Split(cmd, " ")
+		)
+		return &gcat.ProxyPTY{
 			Command: exec.Command(cmdParts[0], cmdParts[1:]...),
 		}, nil
 

@@ -7,9 +7,9 @@ import (
 )
 
 type CMDWrapper struct {
-	Command *exec.Cmd
-	stdout  io.ReadCloser
-	stdin   io.WriteCloser
+	cmd       *exec.Cmd
+	stdout    io.ReadCloser
+	stdin     io.WriteCloser
 }
 
 func (w *CMDWrapper) Write(p []byte) (int, error) {
@@ -31,10 +31,15 @@ func (w *CMDWrapper) Close() error {
 }
 
 type ProxyExec struct {
-	Command *exec.Cmd
+	cmd *CMDWrapper
+}
+
+func NewProxyExec(name string, arg ...string) (ProxyExec, error) {
 }
 
 func (p *ProxyExec) Dial() (io.ReadWriteCloser, error) {
+	p.cmd = exec.Command(p.CmdStr[0], p.CmdString[1:]...)
+
 	p.Command.Stderr = os.Stderr
 	stdout, err := p.Command.StdoutPipe()
 	if err != nil {
@@ -49,7 +54,7 @@ func (p *ProxyExec) Dial() (io.ReadWriteCloser, error) {
 	}
 	return &CMDWrapper{
 		Command: p.Command,
-		stdout: stdout,
-		stdin:  stdin,
+		stdout:  stdout,
+		stdin:   stdin,
 	}, nil
 }
