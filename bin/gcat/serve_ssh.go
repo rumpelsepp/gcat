@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"bytes"
-	"context"
 	"fmt"
 	"io"
 	"os"
@@ -65,11 +64,7 @@ func (c *serveSSHCommand) makeSSHSessionHandler(shell string) ssh.Handler {
 		case len(s.Command()) > 0:
 			c.logger.LogInfo("No PTY requested, executing command: '%s'", s.RawCommand())
 
-			var (
-				ctx, cancel = context.WithCancel(context.Background())
-				cmd         = exec.CommandContext(ctx, s.Command()[0], s.Command()[1:]...)
-			)
-			defer cancel()
+			cmd := exec.CommandContext(s.Context(), s.Command()[0], s.Command()[1:]...)
 
 			if stdin, err := cmd.StdinPipe(); err != nil {
 				c.logger.LogError("Could not initialize StdinPipe", err)
@@ -80,10 +75,8 @@ func (c *serveSSHCommand) makeSSHSessionHandler(shell string) ssh.Handler {
 					if _, err := io.Copy(stdin, s); err != nil {
 						c.logger.LogErrorf("Error while copying input from %s to stdin: %s", s.RemoteAddr().String(), err)
 					}
-					// When the copy returns, kill the child process
-					// by cancelling the context. Everything is cleaned
-					// up automatically.
-					cancel()
+
+					s.Close()
 				}()
 			}
 
@@ -95,24 +88,23 @@ func (c *serveSSHCommand) makeSSHSessionHandler(shell string) ssh.Handler {
 				fmt.Fprintf(s, f, v...)
 			}
 
-			if err := cmd.Run(); err != nil {
-				logError("Command execution failed: %s\n", err)
-				s.Exit(255)
-				return
-			}
-			if err := ctx.Err(); err != nil {
-				logError("Command execution failed: %s\n", err)
-				s.Exit(254)
-				return
-			}
+			done := make(chan error, 1)
+			go func() { done <- cmd.Run() }()
 
-			if cmd.ProcessState != nil {
+			select {
+			case err := <-done:
+				if err != nil {
+					logError("Command execution failed: %s\n", err)
+					s.Exit(255)
+					return
+				}
+				c.logger.LogInfo("Command execution successful")
 				s.Exit(cmd.ProcessState.ExitCode())
-				// When the process state is not populated something strange
-				// happenend. I would consider this a bug that I overlooked.
-			} else {
-				logError("Unknown error happenend. Bug?\n")
-				logError("You may report it: https://codeberg.org/rumpelsepp/gcat/issues\n")
+				return
+
+			case <-s.Context().Done():
+				c.logger.LogInfof("Session terminated: %s", s.Context().Err())
+				return
 			}
 
 		default:

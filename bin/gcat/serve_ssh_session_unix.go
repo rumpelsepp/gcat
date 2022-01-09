@@ -22,6 +22,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"os/user"
 
 	"github.com/creack/pty"
 	"github.com/gliderlabs/ssh"
@@ -36,6 +37,9 @@ func (c *serveSSHCommand) createPty(s ssh.Session, shell string) {
 	defer cancel()
 
 	cmd.Env = append(cmd.Env, fmt.Sprintf("TERM=%s", ptyReq.Term))
+	if currentUser, err := user.Current(); err == nil {
+		cmd.Env = append(cmd.Env, fmt.Sprintf("HOME=%s", currentUser.HomeDir))
+	}
 	f, err := pty.Start(cmd)
 	if err != nil {
 		c.logger.LogCriticalf("Could not start shell:", err)
@@ -48,21 +52,31 @@ func (c *serveSSHCommand) createPty(s ssh.Session, shell string) {
 		}
 	}()
 
-	go io.Copy(f, s)
-	go io.Copy(s, f)
+	go func() {
+		io.Copy(f, s)
+		s.Close()
+	}()
+	go func() {
+		io.Copy(s, f)
+		s.Close()
+	}()
 
-	if err := cmd.Wait(); err != nil {
-		c.logger.LogErrorf("Session ended with error:", err)
-		s.Exit(255)
-		return
-	}
+	done := make(chan error, 1)
+	go func() { done <- cmd.Wait() }()
 
-	if cmd.ProcessState != nil {
+	select {
+	case err := <-done:
+		if err != nil {
+			c.logger.LogErrorf("Session ended with error:", err)
+			s.Exit(255)
+			return
+		}
+		c.logger.LogInfof("Session ended normally")
 		s.Exit(cmd.ProcessState.ExitCode())
-	} else {
-		// When the process state is not populated something strange
-		// happenend. I would consider this a bug that I overlooked.
-		c.logger.LogErrorf("Unknown error happenend. Bug?\n")
-		c.logger.LogErrorf("You may report it: https://codeberg.org/rumpelsepp/gcat/issues\n")
+		return
+
+	case <-s.Context().Done():
+		c.logger.LogInfof("Session terminated: %s", s.Context().Err())
+		return
 	}
 }
