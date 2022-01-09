@@ -1,0 +1,7 @@
+pipeline:
+  setup:
+    image: archlinux:latest
+    commands:
+      - pacman -Syu --noconfirm
+      - pacman -S --noconfirm go
+      - make
