@@ -42,7 +42,7 @@ func (c *serveSSHCommand) createPty(s ssh.Session, shell string) {
 	}
 	f, err := pty.Start(cmd)
 	if err != nil {
-		c.logger.LogCriticalf("Could not start shell:", err)
+		c.logger.LogCriticalf("Could not start shell: %s", err)
 		os.Exit(1)
 	}
 	go func() {
@@ -67,7 +67,7 @@ func (c *serveSSHCommand) createPty(s ssh.Session, shell string) {
 	select {
 	case err := <-done:
 		if err != nil {
-			c.logger.LogErrorf("Session ended with error:", err)
+			c.logger.LogErrorf("Session ended with error: %s", err)
 			s.Exit(255)
 			return
 		}

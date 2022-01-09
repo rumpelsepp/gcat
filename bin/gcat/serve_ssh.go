@@ -62,7 +62,7 @@ func (c *serveSSHCommand) makeSSHSessionHandler(shell string) ssh.Handler {
 			c.createPty(s, shell)
 
 		case len(s.Command()) > 0:
-			c.logger.LogInfo("No PTY requested, executing command: '%s'", s.RawCommand())
+			c.logger.LogInfof("No PTY requested, executing command: '%s'", s.RawCommand())
 
 			cmd := exec.CommandContext(s.Context(), s.Command()[0], s.Command()[1:]...)
 
