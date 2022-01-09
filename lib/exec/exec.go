@@ -1,4 +1,4 @@
-package gcat
+package exec
 
 import (
 	"io"
