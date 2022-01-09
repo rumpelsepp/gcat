@@ -27,7 +27,10 @@ func (w *CMDWrapper) Close() error {
 			return err
 		}
 	}
-	return w.Command.Wait()
+
+	// The exit code is != 0 when we kill it.
+	w.Command.Wait()
+	return nil
 }
 
 type ProxyExec struct {
