@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	gexec "codeberg.org/rumpelsepp/gcat/lib/exec"
+
 	"codeberg.org/rumpelsepp/gcat"
 	"codeberg.org/rumpelsepp/helpers"
 	"github.com/spf13/cobra"
@@ -37,7 +39,7 @@ func setupProxy(u *url.URL) (interface{}, error) {
 			cmd      = query.Get("cmd")
 			cmdParts = strings.Split(cmd, " ")
 		)
-		return &gcat.ProxyExec{
+		return &gexec.ProxyExec{
 			Command: exec.Command(cmdParts[0], cmdParts[1:]...),
 		}, nil
 
