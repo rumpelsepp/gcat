@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	gexec "codeberg.org/rumpelsepp/gcat/lib/exec"
+	gexec "codeberg.org/rumpelsepp/gcat/lib/proxy/exec"
 
 	"codeberg.org/rumpelsepp/gcat"
 	"codeberg.org/rumpelsepp/helpers"
