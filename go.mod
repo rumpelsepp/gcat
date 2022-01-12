@@ -1,6 +1,6 @@
 module codeberg.org/rumpelsepp/gcat
 
-go 1.17
+go 1.18
 
 require (
 	codeberg.org/rumpelsepp/helpers v0.0.0-20211020091314-b9b064cf8c8a

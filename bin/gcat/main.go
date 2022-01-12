@@ -90,6 +90,9 @@ func main() {
 	dohFlags.StringVarP(&serveDOHCmd.path, "path", "p", "/dns-query", "Specify HTTP path")
 	dohFlags.StringVarP(&serveDOHCmd.requestLog, "request-log", "r", "", "Request logfile, `-` means stderr")
 	dohFlags.StringVarP(&serveDOHCmd.upstream, "upstream", "u", "udp://127.0.0.1:53", "Upstream DNS resolver, concatenate with `|`")
+	dohFlags.BoolVarP(&serveDOHCmd.randomTLS, "random-keypair", "R", false, "Autogenerate a TLS keypair")
+	dohFlags.StringVarP(&serveDOHCmd.tlsKeyFile, "keyfile", "K", "", "Path to TLS keyfile in PEM format")
+	dohFlags.StringVarP(&serveDOHCmd.tlsCertFile, "certfile", "C", "", "Path to TLS certfile in PEM format")
 
 	// ftp
 	serveCobraCmd.AddCommand(serveFTPCobraCmd)
