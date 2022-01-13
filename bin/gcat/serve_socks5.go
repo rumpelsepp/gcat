@@ -9,7 +9,7 @@ import (
 )
 
 type serveSOCKS5Command struct {
-	opts     *runtimeOptions
+	state    *runtimeState
 	listen   string
 	username string
 	password string

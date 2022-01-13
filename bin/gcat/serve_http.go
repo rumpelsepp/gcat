@@ -8,7 +8,7 @@ import (
 )
 
 type serveHTTPCommand struct {
-	opts    *runtimeOptions
+	state   *runtimeState
 	path    string
 	root    string
 	address string

@@ -5,8 +5,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// TODO: find a better name for this. :)
-type runtimeOptions struct {
+type runtimeState struct {
 	logger *penlogger.Logger
 
 	keepRunning bool
@@ -15,14 +14,14 @@ type runtimeOptions struct {
 
 func main() {
 	var (
-		opts           runtimeOptions
-		serveDOHCmd    = serveDOHCommand{opts: &opts}
-		serveFTPCmd    = serveFTPCommand{opts: &opts}
-		serveHTTPCmd   = serveHTTPCommand{opts: &opts}
-		serveSOCKS5Cmd = serveSOCKS5Command{opts: &opts}
-		serveSSHCmd    = newServerSSHCommand(&opts)
-		serveWebDAVCmd = serveWebDAVCommand{opts: &opts}
-		proxyCmd       = proxyCommand{opts: &opts}
+		state           runtimeState
+		serveDOHCmd    = serveDOHCommand{state: &state}
+		serveFTPCmd    = serveFTPCommand{state: &state}
+		serveHTTPCmd   = serveHTTPCommand{state: &state}
+		serveSOCKS5Cmd = serveSOCKS5Command{state: &state}
+		serveSSHCmd    = newServerSSHCommand(&state)
+		serveWebDAVCmd = serveWebDAVCommand{state: &state}
+		proxyCmd       = proxyCommand{state: &state}
 	)
 
 	var (
@@ -72,13 +71,13 @@ func main() {
 
 	// globals
 	globalFlags := rootCobraCmd.PersistentFlags()
-	globalFlags.BoolVarP(&opts.verbose, "verbose", "v", false, "Enable verbose logging")
+	globalFlags.BoolVarP(&state.verbose, "verbose", "v", false, "Enable verbose logging")
 
 	// proxy
 	rootCobraCmd.AddCommand(proxyCobraCmd)
 	proxyFlags := proxyCobraCmd.Flags()
 	// TODO: Can this live in the proxy cmd struct instead?
-	proxyFlags.BoolVarP(&opts.keepRunning, "keep", "k", false, "Keep the listener running")
+	proxyFlags.BoolVarP(&state.keepRunning, "keep", "k", false, "Keep the listener running")
 
 	// serve
 	rootCobraCmd.AddCommand(serveCobraCmd)

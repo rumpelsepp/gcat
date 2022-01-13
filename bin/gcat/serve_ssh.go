@@ -17,7 +17,7 @@ import (
 
 type serveSSHCommand struct {
 	logger         *penlogger.Logger
-	opts           *runtimeOptions
+	state          *runtimeState
 	hostKey        string
 	authorizedKeys string
 	root           string
@@ -27,10 +27,10 @@ type serveSSHCommand struct {
 	shell          string
 }
 
-func newServerSSHCommand(state *runtimeOptions) *serveSSHCommand {
+func newServerSSHCommand(state *runtimeState) *serveSSHCommand {
 	return &serveSSHCommand{
 		logger: penlogger.NewLogger("ssh", os.Stderr),
-		opts:   state,
+		state:  state,
 	}
 }
 

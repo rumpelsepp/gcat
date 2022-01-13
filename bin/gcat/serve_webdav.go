@@ -9,7 +9,7 @@ import (
 )
 
 type serveWebDAVCommand struct {
-	opts    *runtimeOptions
+	state   *runtimeState
 	root    string
 	address string
 }

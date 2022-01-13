@@ -217,7 +217,7 @@ func mainLoopKeep(left interface{}, right interface{}) {
 }
 
 type proxyCommand struct {
-	opts *runtimeOptions
+	state *runtimeState
 }
 
 func (c *proxyCommand) run(cmd *cobra.Command, args []string) error {
@@ -257,7 +257,7 @@ func (c *proxyCommand) run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if c.opts.keepRunning {
+	if c.state.keepRunning {
 		mainLoopKeep(proxyLeft, proxyRight)
 	} else {
 		mainLoopSingle(proxyLeft, proxyRight)

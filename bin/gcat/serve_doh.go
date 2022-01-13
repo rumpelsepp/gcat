@@ -35,7 +35,7 @@ func parseUpstreams(s string) ([]netip.AddrPort, error) {
 }
 
 type serveDOHCommand struct {
-	opts        *runtimeOptions
+	state        *runtimeState
 	upstream    string
 	requestLog  string
 	path        string
