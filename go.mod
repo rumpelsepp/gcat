@@ -4,7 +4,6 @@ go 1.18
 
 require (
 	codeberg.org/rumpelsepp/helpers v0.0.0-20211020091314-b9b064cf8c8a
-	codeberg.org/rumpelsepp/socks5 v0.0.0-20211118122615-8b852ab4b838
 	github.com/ActiveState/termtest/conpty v0.5.0
 	github.com/Fraunhofer-AISEC/penlogger v0.0.0-20210914113712-8a2b1758b080
 	github.com/creack/pty v1.1.17

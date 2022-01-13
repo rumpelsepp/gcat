@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"codeberg.org/rumpelsepp/socks5"
+	"codeberg.org/rumpelsepp/gcat/lib/server/socks5"
 	"github.com/Fraunhofer-AISEC/penlogger"
 	"github.com/spf13/cobra"
 )
