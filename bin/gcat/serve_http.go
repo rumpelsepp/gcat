@@ -2,8 +2,8 @@ package main
 
 import (
 	"net/http"
-	"time"
 
+	"codeberg.org/rumpelsepp/gcat/lib/helper"
 	"github.com/spf13/cobra"
 )
 
@@ -17,15 +17,13 @@ type serveHTTPCommand struct {
 func (c *serveHTTPCommand) run(cmd *cobra.Command, args []string) error {
 	handler := http.NewServeMux()
 	handler.Handle(c.path, http.FileServer(http.Dir(c.root)))
-	srv := &http.Server{
-		Addr:         c.address,
-		WriteTimeout: time.Second * 15,
-		ReadTimeout:  time.Second * 15,
-		IdleTimeout:  time.Second * 60,
-		Handler:      handler,
+
+	server, err := helper.NewHTTPServer(handler, c.address, "", nil)
+	if err != nil {
+		return err
 	}
 
-	if err := srv.ListenAndServe(); err != nil {
+	if err := server.ListenAndServe(); err != nil {
 		return err
 	}
 	return nil

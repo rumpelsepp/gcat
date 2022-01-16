@@ -106,6 +106,7 @@ func (s *DoHServer) postRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer r.Body.Close()
+
 	var question dns.Msg
 	if err := question.Unpack(rawQuestion); err != nil {
 		fmt.Println(err)
