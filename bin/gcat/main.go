@@ -1,6 +1,9 @@
 package main
 
 import (
+	"fmt"
+	"runtime/debug"
+
 	"github.com/Fraunhofer-AISEC/penlogger"
 	"github.com/spf13/cobra"
 )
@@ -28,6 +31,27 @@ func main() {
 		rootCobraCmd = &cobra.Command{
 			Use:   "gcat",
 			Short: "gcat",
+		}
+		versionCobraCmd = &cobra.Command{
+			Use:   "version",
+			Short: "Show version information and exit",
+			RunE: func(cmd *cobra.Command, args []string) error {
+				info, ok := debug.ReadBuildInfo()
+				if !ok {
+					return fmt.Errorf("could not read build info")
+				}
+
+				cmd.Printf("Go version: %s\n", info.GoVersion)
+				cmd.Printf("Main version: %s\n", info.Main.Version)
+
+				for _, setting := range info.Settings {
+					if setting.Value == "" {
+						continue
+					}
+					cmd.Printf("%s: %s\n", setting.Key, setting.Value)
+				}
+				return nil
+			},
 		}
 		serveCobraCmd = &cobra.Command{
 			Use:   "serve",
@@ -81,6 +105,9 @@ func main() {
 
 	// serve
 	rootCobraCmd.AddCommand(serveCobraCmd)
+
+	// version
+	rootCobraCmd.AddCommand(versionCobraCmd)
 
 	// doh
 	serveCobraCmd.AddCommand(serveDOHCobraCmd)
