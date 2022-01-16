@@ -8,11 +8,9 @@ import (
 	"io"
 	"net/http"
 	"net/netip"
-	"os"
 	"sync"
-	"time"
 
-	"github.com/gorilla/handlers"
+	"codeberg.org/rumpelsepp/gcat/lib/helper"
 	"github.com/gorilla/mux"
 	"github.com/miekg/dns"
 )
@@ -127,26 +125,9 @@ func (s *DoHServer) Run() error {
 	r.HandleFunc(s.Path, s.getRequest).Methods(http.MethodGet).Headers("Content-Type", mime)
 	r.HandleFunc(s.Path, s.postRequest).Methods(http.MethodPost).Headers("Content-Type", mime)
 
-	var h http.Handler = r
-	if log := s.RequestLog; log != "" {
-		if log == "-" {
-			h = handlers.LoggingHandler(os.Stderr, r)
-		} else {
-			f, err := os.Create(s.RequestLog)
-			if err != nil {
-				return err
-			}
-			h = handlers.LoggingHandler(f, r)
-			defer f.Close()
-		}
-	}
-
-	httpServer := &http.Server{
-		TLSConfig:    s.TLSConfig,
-		Addr:         s.Listen,
-		Handler:      h,
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 10 * time.Second,
+	httpServer, err := helper.NewHTTPServer(r, s.Listen, s.RequestLog, s.TLSConfig)
+	if err != nil {
+		return err
 	}
 
 	if s.TLSCertFile != "" && s.TLSKeyFile != "" {

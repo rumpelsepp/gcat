@@ -17,7 +17,7 @@ type runtimeState struct {
 
 func main() {
 	var (
-		state           runtimeState
+		state          runtimeState
 		serveDOHCmd    = serveDOHCommand{state: &state}
 		serveFTPCmd    = serveFTPCommand{state: &state}
 		serveHTTPCmd   = serveHTTPCommand{state: &state}

@@ -1,11 +1,11 @@
 package main
 
 import (
-	"net/http"
-	"time"
+	"os"
 
+	"codeberg.org/rumpelsepp/gcat/lib/server/webdav"
+	"github.com/Fraunhofer-AISEC/penlogger"
 	"github.com/spf13/cobra"
-	"golang.org/x/net/webdav"
 )
 
 type serveWebDAVCommand struct {
@@ -15,28 +15,11 @@ type serveWebDAVCommand struct {
 }
 
 func (c *serveWebDAVCommand) run(cmd *cobra.Command, args []string) error {
-	srv := &webdav.Handler{
-		FileSystem: webdav.Dir(c.root),
-		LockSystem: webdav.NewMemLS(),
-		Logger: func(r *http.Request, err error) {
-			if err != nil {
-				cmd.Printf("[%s]: %s, ERROR: %s\n", r.Method, r.URL, err)
-			} else {
-				cmd.Printf("[%s]: %s \n", r.Method, r.URL)
-			}
-		},
+	srv := webdav.WebDAVServer{
+		Logger: penlogger.NewLogger("webdav", os.Stderr),
+		Root:   c.root,
+		Listen: c.address,
 	}
 
-	httpServer := &http.Server{
-		Addr:         c.address,
-		WriteTimeout: time.Second * 15,
-		ReadTimeout:  time.Second * 15,
-		IdleTimeout:  time.Second * 60,
-		Handler:      srv,
-	}
-
-	if err := httpServer.ListenAndServe(); err != nil {
-		return err
-	}
-	return nil
+	return srv.Run()
 }
