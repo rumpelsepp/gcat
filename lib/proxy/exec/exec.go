@@ -2,8 +2,10 @@ package exec
 
 import (
 	"io"
+	"net/url"
 	"os"
 	"os/exec"
+	"strings"
 )
 
 type CMDWrapper struct {
@@ -37,6 +39,17 @@ type ProxyExec struct {
 	Command *exec.Cmd
 }
 
+func CreateProxyExec(u *url.URL) (*ProxyExec, error) {
+	var (
+		query    = u.Query()
+		cmd      = query.Get("cmd")
+		cmdParts = strings.Split(cmd, " ")
+	)
+	return &ProxyExec{
+		Command: exec.Command(cmdParts[0], cmdParts[1:]...),
+	}, nil
+}
+
 func (p *ProxyExec) Dial() (io.ReadWriteCloser, error) {
 	p.Command.Stderr = os.Stderr
 	stdout, err := p.Command.StdoutPipe()
@@ -52,7 +65,7 @@ func (p *ProxyExec) Dial() (io.ReadWriteCloser, error) {
 	}
 	return &CMDWrapper{
 		Command: p.Command,
-		stdout: stdout,
-		stdin:  stdin,
+		stdout:  stdout,
+		stdin:   stdin,
 	}, nil
 }

@@ -6,42 +6,41 @@ import (
 	"io"
 	"net/url"
 	"os"
-	"os/exec"
-	"strconv"
 	"strings"
 	"time"
 
-	gexec "codeberg.org/rumpelsepp/gcat/lib/proxy/exec"
-
 	"codeberg.org/rumpelsepp/gcat"
+	gexec "codeberg.org/rumpelsepp/gcat/lib/proxy/exec"
 	"codeberg.org/rumpelsepp/helpers"
 	"github.com/spf13/cobra"
 )
 
+type ProxyScheme string
+
 const (
-	ProxySchemeExec      = "exec"
-	ProxySchemeSTDIO     = "stdio"
-	ProxySchemeTCP       = "tcp"
-	ProxySchemeTCPListen = "tcp-listen"
-	ProxySchemeTLS       = "tls"
-	ProxySchemeTLSListen = "tls-listen"
-	ProxySchemeTun       = "tun"
-	ProxySchemeWS        = "ws"
-	ProxySchemeWSListen  = "ws-listen"
+	ProxySchemeExec      ProxyScheme = "exec"
+	ProxySchemeSTDIO                 = "stdio"
+	ProxySchemeTCP                   = "tcp"
+	ProxySchemeTCPListen             = "tcp-listen"
+	ProxySchemeTLS                   = "tls"
+	ProxySchemeTLSListen             = "tls-listen"
+	ProxySchemeTUN                   = "tun"
+	ProxySchemeWS                    = "ws"
+	ProxySchemeWSListen              = "ws-listen"
 )
 
-func setupProxy(u *url.URL) (interface{}, error) {
-	query := u.Query()
+func (s ProxyScheme) IsListener() bool {
+	if strings.Contains(string(s), "listen") {
+		return true
+	}
+	return false
+}
 
-	switch u.Scheme {
+func createProxy(u *url.URL) (interface{}, error) {
+	switch ProxyScheme(u.Scheme) {
+
 	case ProxySchemeExec:
-		var (
-			cmd      = query.Get("cmd")
-			cmdParts = strings.Split(cmd, " ")
-		)
-		return &gexec.ProxyExec{
-			Command: exec.Command(cmdParts[0], cmdParts[1:]...),
-		}, nil
+		return gexec.CreateProxyExec(u)
 
 	case ProxySchemeSTDIO:
 		return gcat.NewStdioWrapper(), nil
@@ -75,45 +74,8 @@ func setupProxy(u *url.URL) (interface{}, error) {
 			Network: "tcp",
 		}, nil
 
-	case ProxySchemeTun:
-		var (
-			dev  = query.Get("dev")
-			ip   = u.Host
-			mask = strings.TrimPrefix(u.Path, "/")
-			mtu  = query.Get("mtu")
-		)
-
-		if ip == "" {
-			return nil, fmt.Errorf("invalid ip address specified")
-		}
-		if mask == "" || strings.Contains(mask, "/") {
-			return nil, fmt.Errorf("invalid subnet mask specified: %s", mask)
-		}
-
-		tun, err := gcat.CreateTun(dev)
-		if err != nil {
-			return nil, err
-		}
-
-		if err := tun.AddAddressCIDR(fmt.Sprintf("%s/%s", ip, mask)); err != nil {
-			return nil, err
-		}
-
-		if mtu != "" {
-			mtuInt, err := strconv.Atoi(mtu)
-			if err != nil {
-				return nil, err
-			}
-			if err := tun.SetMTU(mtuInt); err != nil {
-				return nil, err
-			}
-		}
-
-		if err := tun.SetUP(); err != nil {
-			return nil, err
-		}
-
-		return tun, nil
+	case ProxySchemeTUN:
+		return gcat.CreateProxyTUN(u)
 
 	case ProxySchemeWS:
 		return &gcat.ProxyWS{
@@ -229,12 +191,12 @@ func (c *proxyCommand) run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	proxyLeft, err := setupProxy(urlLeft)
+	proxyLeft, err := createProxy(urlLeft)
 	if err != nil {
 		return err
 	}
 
-	proxyRight, err := setupProxy(urlRight)
+	proxyRight, err := createProxy(urlRight)
 	if err != nil {
 		return err
 	}

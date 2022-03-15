@@ -9,12 +9,12 @@ import (
 	"github.com/vishvananda/netlink"
 )
 
-type NativeTun struct {
+type NativeTUN struct {
 	*os.File
 	netlink.Link
 }
 
-func CreateTun(name string) (TunDevice, error) {
+func CreateTun(name string) (*NativeTUN, error) {
 	la := netlink.NewLinkAttrs()
 	la.Name = name
 
@@ -54,10 +54,10 @@ func CreateTun(name string) (TunDevice, error) {
 	if len(link.Fds) != 1 {
 		return nil, fmt.Errorf("BUG: got too much tuntap fds")
 	}
-	return &NativeTun{Link: iface, File: link.Fds[0]}, nil
+	return &NativeTUN{Link: iface, File: link.Fds[0]}, nil
 }
 
-func (tun *NativeTun) Close() error {
+func (tun *NativeTUN) Close() error {
 	if err := tun.File.Close(); err != nil {
 		return err
 	}
@@ -67,23 +67,23 @@ func (tun *NativeTun) Close() error {
 	return netlink.LinkDel(tun.Link)
 }
 
-func (tun *NativeTun) Index() int {
+func (tun *NativeTUN) Index() int {
 	return tun.Link.Attrs().Index
 }
 
-func (tun *NativeTun) SetMTU(mtu int) error {
+func (tun *NativeTUN) SetMTU(mtu int) error {
 	return netlink.LinkSetMTU(tun.Link, mtu)
 }
 
-func (tun *NativeTun) MTU() int {
+func (tun *NativeTUN) MTU() int {
 	return tun.Link.Attrs().MTU
 }
 
-func (tun *NativeTun) SetUP() error {
+func (tun *NativeTUN) SetUP() error {
 	return netlink.LinkSetUp(tun.Link)
 }
 
-func (tun *NativeTun) AddAddressCIDR(cidrAddr string) error {
+func (tun *NativeTUN) AddAddressCIDR(cidrAddr string) error {
 	addr, err := netlink.ParseAddr(cidrAddr)
 	if err != nil {
 		return err
@@ -94,3 +94,4 @@ func (tun *NativeTun) AddAddressCIDR(cidrAddr string) error {
 	}
 	return nil
 }
+
