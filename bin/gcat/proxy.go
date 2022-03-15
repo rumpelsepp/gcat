@@ -125,8 +125,8 @@ func setupProxy(u *url.URL) (interface{}, error) {
 
 	case ProxySchemeWSListen:
 		return &gcat.ProxyWSListener{
-			Address:   u.Host,
-			Path:      u.Path,
+			Address: u.Host,
+			Path:    u.Path,
 		}, nil
 
 	default:
@@ -167,18 +167,18 @@ func connect(proxy interface{}) (io.ReadWriteCloser, error) {
 }
 
 func fixupURL(rawURL string) string {
-	if rawURL == "-" {
+	switch {
+	case rawURL == "-":
 		return "stdio:"
-	} else if strings.HasPrefix(rawURL, "exec:") && !strings.Contains(rawURL, "?") {
+	case strings.HasPrefix(rawURL, "exec:") && !strings.Contains(rawURL, "?"):
 		cmdEncoded := url.QueryEscape(strings.TrimPrefix(rawURL, "exec:"))
 		return fmt.Sprintf("exec:?cmd=%s", cmdEncoded)
-	} else {
-		return rawURL
 	}
+
+	return rawURL
 }
 
-// TODO: Solve this with generics, once they are here.
-func mainLoopSingle(left interface{}, right interface{}) {
+func mainLoop(left interface{}, right interface{}) {
 	connLeft, err := connect(left)
 	if err != nil {
 		fmt.Println(err)
@@ -195,29 +195,6 @@ func mainLoopSingle(left interface{}, right interface{}) {
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
-	}
-}
-
-// TODO: Solve this with generics, once they are here.
-func mainLoopKeep(left interface{}, right interface{}) {
-	for {
-		connLeft, err := connect(left)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-
-		connRight, err := connect(right)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-
-		_, _, err = helpers.BidirectCopy(connLeft, connRight)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
 	}
 }
 
@@ -263,9 +240,11 @@ func (c *proxyCommand) run(cmd *cobra.Command, args []string) error {
 	}
 
 	if c.state.keepRunning {
-		mainLoopKeep(proxyLeft, proxyRight)
+		for {
+			mainLoop(proxyLeft, proxyRight)
+		}
 	} else {
-		mainLoopSingle(proxyLeft, proxyRight)
+		mainLoop(proxyLeft, proxyRight)
 	}
 	return nil
 }
