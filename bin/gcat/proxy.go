@@ -11,6 +11,7 @@ import (
 
 	"codeberg.org/rumpelsepp/gcat"
 	gexec "codeberg.org/rumpelsepp/gcat/lib/proxy/exec"
+	"codeberg.org/rumpelsepp/gcat/lib/proxy/tun"
 	"codeberg.org/rumpelsepp/helpers"
 	"github.com/spf13/cobra"
 )
@@ -75,7 +76,7 @@ func createProxy(u *url.URL) (any, error) {
 		}, nil
 
 	case ProxySchemeTUN:
-		return gcat.CreateProxyTUN(u)
+		return tun.CreateProxyTUN(u)
 
 	case ProxySchemeWS:
 		return &gcat.ProxyWS{
