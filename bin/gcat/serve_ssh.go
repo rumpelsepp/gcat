@@ -83,7 +83,7 @@ func (c *serveSSHCommand) makeSSHSessionHandler(shell string) ssh.Handler {
 			cmd.Stdout = s
 			cmd.Stderr = s
 
-			logError := func(f string, v ...interface{}) {
+			logError := func(f string, v ...any) {
 				c.logger.LogErrorf(f, v...)
 				fmt.Fprintf(s, f, v...)
 			}

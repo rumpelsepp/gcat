@@ -64,7 +64,7 @@ func (p *ProxyWSListener) handleWebsocket(w http.ResponseWriter, r *http.Request
 
 	conn := websocket.NetConn(context.Background(), wsConn, websocket.MessageBinary)
 	wrappedConn := &wsConnWrapper{
-		Conn: conn,
+		Conn:   conn,
 		doneCh: make(chan bool),
 	}
 	p.newConnCh <- wrappedConn

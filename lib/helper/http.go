@@ -24,7 +24,7 @@ func NewHTTPServer(handler http.Handler, listen, requestLog string, tlsConfig *t
 		}
 	}
 
-	return  &http.Server{
+	return &http.Server{
 		TLSConfig:    tlsConfig,
 		Addr:         listen,
 		Handler:      h,

@@ -94,4 +94,3 @@ func (tun *NativeTUN) AddAddressCIDR(cidrAddr string) error {
 	}
 	return nil
 }
-

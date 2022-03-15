@@ -36,7 +36,7 @@ func (s ProxyScheme) IsListener() bool {
 	return false
 }
 
-func createProxy(u *url.URL) (interface{}, error) {
+func createProxy(u *url.URL) (any, error) {
 	switch ProxyScheme(u.Scheme) {
 
 	case ProxySchemeExec:
@@ -96,7 +96,7 @@ func createProxy(u *url.URL) (interface{}, error) {
 	}
 }
 
-func connect(proxy interface{}) (io.ReadWriteCloser, error) {
+func connect(proxy any) (io.ReadWriteCloser, error) {
 	switch p := proxy.(type) {
 	case io.ReadWriteCloser:
 		return p, nil
@@ -140,7 +140,7 @@ func fixupURL(rawURL string) string {
 	return rawURL
 }
 
-func mainLoop(left interface{}, right interface{}) {
+func mainLoop(left any, right any) {
 	connLeft, err := connect(left)
 	if err != nil {
 		fmt.Println(err)

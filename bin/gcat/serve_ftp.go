@@ -7,7 +7,7 @@ import (
 )
 
 type serveFTPCommand struct {
-	state   *runtimeState
+	state  *runtimeState
 	root   string
 	port   uint16
 	user   string
