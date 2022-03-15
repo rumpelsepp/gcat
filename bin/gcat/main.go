@@ -30,11 +30,11 @@ func main() {
 	var (
 		rootCobraCmd = &cobra.Command{
 			Use:   "gcat",
-			Short: "gcat",
+			Short: "gcat -- the swiss army knife for network protocols",
 		}
 		versionCobraCmd = &cobra.Command{
 			Use:   "version",
-			Short: "Show version information and exit",
+			Short: "show version information and exit",
 			RunE: func(cmd *cobra.Command, args []string) error {
 				info, ok := debug.ReadBuildInfo()
 				if !ok {
@@ -58,8 +58,9 @@ func main() {
 			Short: "Run a specific service",
 		}
 		proxyCobraCmd = &cobra.Command{
-			Use:  "proxy",
-			RunE: proxyCmd.run,
+			Use:   "proxy",
+			Short: "Act as a fancy socat like proxy tool",
+			RunE:  proxyCmd.run,
 		}
 		serveDOHCobraCmd = &cobra.Command{
 			Use:   "doh",
@@ -95,13 +96,13 @@ func main() {
 
 	// globals
 	globalFlags := rootCobraCmd.PersistentFlags()
-	globalFlags.BoolVarP(&state.verbose, "verbose", "v", false, "Enable verbose logging")
+	globalFlags.BoolVarP(&state.verbose, "verbose", "v", false, "enable verbose logging")
 
 	// proxy
 	rootCobraCmd.AddCommand(proxyCobraCmd)
 	proxyFlags := proxyCobraCmd.Flags()
 	// TODO: Can this live in the proxy cmd struct instead?
-	proxyFlags.BoolVarP(&state.keepRunning, "keep", "k", false, "Keep the listener running")
+	proxyFlags.BoolVarP(&state.keepRunning, "keep", "k", false, "keep the listener running")
 
 	// serve
 	rootCobraCmd.AddCommand(serveCobraCmd)
@@ -112,13 +113,13 @@ func main() {
 	// doh
 	serveCobraCmd.AddCommand(serveDOHCobraCmd)
 	dohFlags := serveDOHCobraCmd.Flags()
-	dohFlags.StringVarP(&serveDOHCmd.listen, "listen", "l", "127.0.0.1:8053", "Listen on this address:port")
-	dohFlags.StringVarP(&serveDOHCmd.path, "path", "p", "/dns-query", "Specify HTTP path")
-	dohFlags.StringVarP(&serveDOHCmd.requestLog, "request-log", "r", "", "Request logfile, `-` means stderr")
-	dohFlags.StringVarP(&serveDOHCmd.upstream, "upstream", "u", "udp://127.0.0.1:53", "Upstream DNS resolver, concatenate with `|`")
-	dohFlags.BoolVarP(&serveDOHCmd.randomTLS, "random-keypair", "R", false, "Autogenerate a TLS keypair")
-	dohFlags.StringVarP(&serveDOHCmd.tlsKeyFile, "keyfile", "K", "", "Path to TLS keyfile in PEM format")
-	dohFlags.StringVarP(&serveDOHCmd.tlsCertFile, "certfile", "C", "", "Path to TLS certfile in PEM format")
+	dohFlags.StringVarP(&serveDOHCmd.listen, "listen", "l", "127.0.0.1:8053", "listen on this address:port")
+	dohFlags.StringVarP(&serveDOHCmd.path, "path", "p", "/dns-query", "specify HTTP path")
+	dohFlags.StringVarP(&serveDOHCmd.requestLog, "request-log", "r", "", "request logfile, `-` means stderr")
+	dohFlags.StringVarP(&serveDOHCmd.upstream, "upstream", "u", "udp://127.0.0.1:53", "upstream DNS resolver, concatenate with `|`")
+	dohFlags.BoolVarP(&serveDOHCmd.randomTLS, "random-keypair", "R", false, "autogenerate a TLS keypair")
+	dohFlags.StringVarP(&serveDOHCmd.tlsKeyFile, "keyfile", "K", "", "path to TLS keyfile in PEM format")
+	dohFlags.StringVarP(&serveDOHCmd.tlsCertFile, "certfile", "C", "", "path to TLS certfile in PEM format")
 
 	// ftp
 	serveCobraCmd.AddCommand(serveFTPCobraCmd)
@@ -131,7 +132,7 @@ func main() {
 	// http
 	serveCobraCmd.AddCommand(serveHTTPCobraCmd)
 	httpFlags := serveHTTPCobraCmd.Flags()
-	httpFlags.StringVarP(&serveHTTPCmd.address, "address", "a", ":8080", "Listen address")
+	httpFlags.StringVarP(&serveHTTPCmd.address, "address", "a", ":8080", "listen address")
 	httpFlags.StringVarP(&serveHTTPCmd.root, "root", "r", ".", "HTTP root directory")
 	httpFlags.StringVarP(&serveHTTPCmd.path, "path", "p", "/", "HTTP path")
 
@@ -149,15 +150,15 @@ func main() {
 	sshFlags.StringVarP(&serveSSHCmd.address, "listen", "l", ":2222", "SSH listen address")
 	sshFlags.StringVarP(&serveSSHCmd.user, "user", "u", "gcat", "SSH user")
 	sshFlags.StringVarP(&serveSSHCmd.passwd, "passwd", "p", "gcat", "SSH password")
-	sshFlags.StringVarP(&serveSSHCmd.shell, "shell", "s", "/bin/bash", "Shell to use")
-	sshFlags.StringVarP(&serveSSHCmd.hostKey, "host-key", "k", "", "Path to host key file, if empty a random key is generated")
-	sshFlags.StringVarP(&serveSSHCmd.authorizedKeys, "authorized-keys", "a", "", "Path to authorized_keys file")
+	sshFlags.StringVarP(&serveSSHCmd.shell, "shell", "s", "/bin/bash", "shell to use")
+	sshFlags.StringVarP(&serveSSHCmd.hostKey, "host-key", "k", "", "path to host key file, if empty a random key is generated")
+	sshFlags.StringVarP(&serveSSHCmd.authorizedKeys, "authorized-keys", "a", "", "path to authorized_keys file")
 
 	// webdav
 	serveCobraCmd.AddCommand(serveWebDAVCobraCmd)
 	webdavFlags := serveWebDAVCobraCmd.Flags()
-	webdavFlags.StringVarP(&serveWebDAVCmd.address, "listen", "l", "127.0.0.1:8000", "Listen on this address:port")
-	webdavFlags.StringVarP(&serveWebDAVCmd.root, "root", "r", "", "Directory root; default is CWD")
+	webdavFlags.StringVarP(&serveWebDAVCmd.address, "listen", "l", "127.0.0.1:8000", "listen on this address:port")
+	webdavFlags.StringVarP(&serveWebDAVCmd.root, "root", "r", "", "directory root; default is CWD")
 
 	// Wire everything up.
 	rootCobraCmd.Execute()

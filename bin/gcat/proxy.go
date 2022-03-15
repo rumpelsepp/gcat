@@ -27,7 +27,7 @@ const (
 	ProxySchemeTLSListen = "tls-listen"
 	ProxySchemeTun       = "tun"
 	ProxySchemeWS        = "ws"
-	// ProxySchemeWSListen         = "ws-listen"
+	ProxySchemeWSListen  = "ws-listen"
 )
 
 func setupProxy(u *url.URL) (interface{}, error) {
@@ -123,12 +123,17 @@ func setupProxy(u *url.URL) (interface{}, error) {
 			Scheme:    ProxySchemeWS,
 		}, nil
 
+	case ProxySchemeWSListen:
+		return &gcat.ProxyWSListener{
+			Address:   u.Host,
+			Path:      u.Path,
+		}, nil
+
 	default:
 		return nil, fmt.Errorf("%w: %s", gcat.ErrNotSupported, u)
 	}
 }
 
-// TODO: Solve this with generics, once they are here.
 func connect(proxy interface{}) (io.ReadWriteCloser, error) {
 	switch p := proxy.(type) {
 	case io.ReadWriteCloser:
