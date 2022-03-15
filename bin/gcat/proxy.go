@@ -12,6 +12,7 @@ import (
 	"codeberg.org/rumpelsepp/gcat"
 	gexec "codeberg.org/rumpelsepp/gcat/lib/proxy/exec"
 	"codeberg.org/rumpelsepp/gcat/lib/proxy/tun"
+	"codeberg.org/rumpelsepp/gcat/lib/proxy/websocket"
 	"codeberg.org/rumpelsepp/helpers"
 	"github.com/spf13/cobra"
 )
@@ -79,7 +80,7 @@ func createProxy(u *url.URL) (any, error) {
 		return tun.CreateProxyTUN(u)
 
 	case ProxySchemeWS:
-		return &gcat.ProxyWS{
+		return &websocket.ProxyWS{
 			Address:   u.Host,
 			KeepAlive: 20 * time.Second, // TODO: Make configurable.
 			Path:      u.Path,
@@ -87,7 +88,7 @@ func createProxy(u *url.URL) (any, error) {
 		}, nil
 
 	case ProxySchemeWSListen:
-		return &gcat.ProxyWSListener{
+		return &websocket.ProxyWSListener{
 			Address: u.Host,
 			Path:    u.Path,
 		}, nil

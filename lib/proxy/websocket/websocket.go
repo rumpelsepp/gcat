@@ -1,4 +1,4 @@
-package gcat
+package websocket
 
 import (
 	"context"
