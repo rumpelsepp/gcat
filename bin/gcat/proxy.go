@@ -9,112 +9,93 @@ import (
 	"strings"
 	"time"
 
-	"codeberg.org/rumpelsepp/gcat"
+	"codeberg.org/rumpelsepp/gcat/lib/proxy"
 	gexec "codeberg.org/rumpelsepp/gcat/lib/proxy/exec"
+	"codeberg.org/rumpelsepp/gcat/lib/proxy/stdio"
+	"codeberg.org/rumpelsepp/gcat/lib/proxy/tcp"
+	gtls "codeberg.org/rumpelsepp/gcat/lib/proxy/tls"
 	"codeberg.org/rumpelsepp/gcat/lib/proxy/tun"
 	"codeberg.org/rumpelsepp/gcat/lib/proxy/websocket"
 	"codeberg.org/rumpelsepp/helpers"
 	"github.com/spf13/cobra"
 )
 
-type ProxyScheme string
-
-const (
-	ProxySchemeExec      ProxyScheme = "exec"
-	ProxySchemeSTDIO                 = "stdio"
-	ProxySchemeTCP                   = "tcp"
-	ProxySchemeTCPListen             = "tcp-listen"
-	ProxySchemeTLS                   = "tls"
-	ProxySchemeTLSListen             = "tls-listen"
-	ProxySchemeTUN                   = "tun"
-	ProxySchemeWS                    = "ws"
-	ProxySchemeWSListen              = "ws-listen"
-)
-
-func (s ProxyScheme) IsListener() bool {
-	if strings.Contains(string(s), "listen") {
-		return true
-	}
-	return false
-}
-
 func createProxy(u *url.URL) (any, error) {
-	switch ProxyScheme(u.Scheme) {
+	switch proxy.ProxyScheme(u.Scheme) {
 
-	case ProxySchemeExec:
+	case proxy.ProxySchemeExec:
 		return gexec.CreateProxyExec(u)
 
-	case ProxySchemeSTDIO:
-		return gcat.NewStdioWrapper(), nil
+	case proxy.ProxySchemeSTDIO:
+		return stdio.NewStdioWrapper(), nil
 
 	// TODO: implement dialer
-	case ProxySchemeTCP:
-		return &gcat.ProxyTCP{
+	case proxy.ProxySchemeTCP:
+		return &tcp.ProxyTCP{
 			Address: u.Host,
 			Network: "tcp",
 		}, nil
 
-	case ProxySchemeTCPListen:
-		return &gcat.ProxyTCPListener{
+	case proxy.ProxySchemeTCPListen:
+		return &tcp.ProxyTCPListener{
 			Address: u.Host,
 			Network: "tcp",
 		}, nil
 
 	// TODO: implement dialer and tls config parsing
-	case ProxySchemeTLS:
-		return &gcat.ProxyTLS{
+	case proxy.ProxySchemeTLS:
+		return &gtls.ProxyTLS{
 			Address: u.Host,
 			Network: "tcp",
 		}, nil
 
 	// TODO: implement tls config parsing
-	case ProxySchemeTLSListen:
+	case proxy.ProxySchemeTLSListen:
 		config := &tls.Config{}
-		return &gcat.ProxyTLSListener{
+		return &gtls.ProxyTLSListener{
 			Address: u.Host,
 			Config:  config,
 			Network: "tcp",
 		}, nil
 
-	case ProxySchemeTUN:
+	case proxy.ProxySchemeTUN:
 		return tun.CreateProxyTUN(u)
 
-	case ProxySchemeWS:
+	case proxy.ProxySchemeWS:
 		return &websocket.ProxyWS{
 			Address:   u.Host,
 			KeepAlive: 20 * time.Second, // TODO: Make configurable.
 			Path:      u.Path,
-			Scheme:    ProxySchemeWS,
+			Scheme:    proxy.ProxySchemeWS,
 		}, nil
 
-	case ProxySchemeWSListen:
+	case proxy.ProxySchemeWSListen:
 		return &websocket.ProxyWSListener{
 			Address: u.Host,
 			Path:    u.Path,
 		}, nil
-
-	default:
-		return nil, fmt.Errorf("%w: %s", gcat.ErrNotSupported, u)
 	}
+
+	return nil, fmt.Errorf("%w: %s", proxy.ErrProxyNotSupported, u)
 }
 
-func connect(proxy any) (io.ReadWriteCloser, error) {
-	switch p := proxy.(type) {
+func connect(node any) (io.ReadWriteCloser, error) {
+	switch p := node.(type) {
 	case io.ReadWriteCloser:
 		return p, nil
 
-	case *gcat.StdioWrapper:
+	case *stdio.StdioWrapper:
 		p.Reopen()
 		return p, nil
 
-	case gcat.ProxyDialer:
+	case proxy.ProxyDialer:
 		conn, err := p.Dial()
 		if err != nil {
 			return nil, err
 		}
 		return conn, nil
 
-	case gcat.ProxyListener:
+	case proxy.ProxyListener:
 		ln, err := p.Listen()
 		if err != nil {
 			return nil, err
@@ -124,10 +105,9 @@ func connect(proxy any) (io.ReadWriteCloser, error) {
 			return nil, err
 		}
 		return conn, err
-
-	default:
-		panic("BUG: Wrong proxy type")
 	}
+
+	panic("BUG: Wrong proxy type")
 }
 
 func fixupURL(rawURL string) string {

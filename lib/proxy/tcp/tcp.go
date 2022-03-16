@@ -1,4 +1,4 @@
-package gcat
+package tcp
 
 import (
 	"io"

@@ -1,4 +1,4 @@
-package gcat
+package gtls
 
 import (
 	"crypto/tls"
