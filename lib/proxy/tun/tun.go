@@ -2,14 +2,15 @@ package tun
 
 import (
 	"fmt"
-	"io"
-	"net/url"
+	"net"
 	"strconv"
 	"strings"
+
+	"codeberg.org/rumpelsepp/gcat/lib/proxy"
 )
 
 type TUNDevice interface {
-	io.ReadWriteCloser
+	net.Conn
 	MTU() int
 	SetMTU(mtu int) error
 	SetUP() error
@@ -20,12 +21,11 @@ type ProxyTUN struct {
 	TUNDevice
 }
 
-func CreateProxyTUN(u *url.URL) (*ProxyTUN, error) {
+func CreateProxyTUN(addr *proxy.ProxyAddr) (*proxy.Proxy, error) {
 	var (
-		query = u.Query()
-		dev   = query.Get("dev")
-		ip    = u.Host
-		mask  = strings.TrimPrefix(u.Path, "/")
+		query = addr.Query()
+		ip    = addr.Host
+		mask  = strings.TrimPrefix(addr.Path, "/")
 		mtu   = query.Get("mtu")
 	)
 
@@ -36,7 +36,7 @@ func CreateProxyTUN(u *url.URL) (*ProxyTUN, error) {
 		return nil, fmt.Errorf("invalid subnet mask specified: %s", mask)
 	}
 
-	tun, err := CreateTun(dev)
+	tun, err := CreateNativeTun(addr)
 	if err != nil {
 		return nil, err
 	}
@@ -59,9 +59,18 @@ func CreateProxyTUN(u *url.URL) (*ProxyTUN, error) {
 		return nil, err
 	}
 
-	return &ProxyTUN{tun}, nil
+	return &proxy.Proxy{
+		Conn: &ProxyTUN{tun},
+	}, nil
+
 }
 
-func (p *ProxyTUN) Dial() error {
-	return nil
+func init() {
+	scheme := proxy.ProxyScheme("tun")
+
+	proxy.ProxyRegistry[scheme] = proxy.ProxyEntryPoint{
+		Scheme:    scheme,
+		Create:    CreateProxyTUN,
+		ShortHelp: "allocate a tun device and send/recv raw ip packets",
+	}
 }

@@ -3,16 +3,39 @@ package main
 import (
 	"fmt"
 	"runtime/debug"
+	"strings"
 
+	"codeberg.org/rumpelsepp/gcat/lib/proxy"
 	"github.com/Fraunhofer-AISEC/penlogger"
+	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/spf13/cobra"
 )
 
 type runtimeState struct {
 	logger *penlogger.Logger
 
-	keepRunning bool
+	loop bool
 	verbose     bool
+}
+
+func getVersion() string {
+	var builder strings.Builder
+
+	info, ok := debug.ReadBuildInfo()
+	if !ok {
+		panic("could not read build info")
+	}
+
+	builder.WriteString(fmt.Sprintf("Go version: %s\n", info.GoVersion))
+	builder.WriteString(fmt.Sprintf("Main version: %s\n", info.Main.Version))
+
+	for _, setting := range info.Settings {
+		if setting.Value == "" {
+			continue
+		}
+		builder.WriteString(fmt.Sprintf("%s: %s\n", setting.Key, setting.Value))
+	}
+	return strings.TrimSpace(builder.String())
 }
 
 func main() {
@@ -29,27 +52,24 @@ func main() {
 
 	var (
 		rootCobraCmd = &cobra.Command{
-			Use:   "gcat",
-			Short: "gcat -- the swiss army knife for network protocols",
+			Use:          "gcat",
+			Short:        "gcat -- the swiss army knife for network protocols",
+			Version:      getVersion(),
+			SilenceUsage: true,
 		}
-		versionCobraCmd = &cobra.Command{
-			Use:   "version",
-			Short: "show version information and exit",
+		proxiesCobraCmd = &cobra.Command{
+			Use:   "proxies",
+			Short: "show registered proxy plugins",
 			RunE: func(cmd *cobra.Command, args []string) error {
-				info, ok := debug.ReadBuildInfo()
-				if !ok {
-					return fmt.Errorf("could not read build info")
+				t := table.NewWriter()
+				t.SetOutputMirror(cmd.OutOrStdout())
+				t.AppendHeader(table.Row{"Scheme", "Description"})
+				for _, v := range proxy.ProxyRegistry {
+					t.AppendRow(table.Row{v.Scheme, v.ShortHelp})
 				}
+				t.SortBy([]table.SortBy{{Name: "Scheme"}})
+				t.Render()
 
-				cmd.Printf("Go version: %s\n", info.GoVersion)
-				cmd.Printf("Main version: %s\n", info.Main.Version)
-
-				for _, setting := range info.Settings {
-					if setting.Value == "" {
-						continue
-					}
-					cmd.Printf("%s: %s\n", setting.Key, setting.Value)
-				}
 				return nil
 			},
 		}
@@ -58,7 +78,7 @@ func main() {
 			Short: "Run a specific service",
 		}
 		proxyCobraCmd = &cobra.Command{
-			Use:   "proxy",
+			Use:   "proxy [flags] URL1 URL2",
 			Short: "Act as a fancy socat like proxy tool",
 			RunE:  proxyCmd.run,
 		}
@@ -102,13 +122,13 @@ func main() {
 	rootCobraCmd.AddCommand(proxyCobraCmd)
 	proxyFlags := proxyCobraCmd.Flags()
 	// TODO: Can this live in the proxy cmd struct instead?
-	proxyFlags.BoolVarP(&state.keepRunning, "keep", "k", false, "keep the listener running")
+	proxyFlags.BoolVarP(&state.loop, "loop", "l", false, "keep the listener running")
+
+	// proxies
+	rootCobraCmd.AddCommand(proxiesCobraCmd)
 
 	// serve
 	rootCobraCmd.AddCommand(serveCobraCmd)
-
-	// version
-	rootCobraCmd.AddCommand(versionCobraCmd)
 
 	// doh
 	serveCobraCmd.AddCommand(serveDOHCobraCmd)

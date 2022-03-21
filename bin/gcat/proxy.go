@@ -1,145 +1,94 @@
 package main
 
 import (
-	"crypto/tls"
 	"fmt"
 	"io"
-	"net/url"
 	"os"
-	"strings"
-	"time"
+	"sync"
 
 	"codeberg.org/rumpelsepp/gcat/lib/proxy"
-	gexec "codeberg.org/rumpelsepp/gcat/lib/proxy/exec"
-	"codeberg.org/rumpelsepp/gcat/lib/proxy/stdio"
-	"codeberg.org/rumpelsepp/gcat/lib/proxy/tcp"
-	gtls "codeberg.org/rumpelsepp/gcat/lib/proxy/tls"
-	"codeberg.org/rumpelsepp/gcat/lib/proxy/tun"
-	"codeberg.org/rumpelsepp/gcat/lib/proxy/websocket"
-	"codeberg.org/rumpelsepp/helpers"
+	_ "codeberg.org/rumpelsepp/gcat/lib/proxy/exec"
+	_ "codeberg.org/rumpelsepp/gcat/lib/proxy/stdio"
+	_ "codeberg.org/rumpelsepp/gcat/lib/proxy/tcp"
+	_ "codeberg.org/rumpelsepp/gcat/lib/proxy/tun"
 	"github.com/spf13/cobra"
 )
 
-func createProxy(u *url.URL) (any, error) {
-	switch proxy.ProxyScheme(u.Scheme) {
+func bidirectCopy(left io.ReadWriteCloser, right io.ReadWriteCloser) (int, int, error) {
+	var (
+		n1   = 0
+		n2   = 0
+		err  error
+		err1 error
+		err2 error
+		wg   sync.WaitGroup
+	)
 
-	case proxy.ProxySchemeExec:
-		return gexec.CreateProxyExec(u)
+	wg.Add(2)
 
-	case proxy.ProxySchemeSTDIO:
-		return stdio.NewStdioWrapper(), nil
+	go func() {
+		if n, err := io.Copy(right, left); err != nil {
+			err1 = err
+		} else {
+			n1 = int(n)
+		}
 
-	// TODO: implement dialer
-	case proxy.ProxySchemeTCP:
-		return &tcp.ProxyTCP{
-			Address: u.Host,
-			Network: "tcp",
-		}, nil
+		right.Close()
+		wg.Done()
+	}()
 
-	case proxy.ProxySchemeTCPListen:
-		return &tcp.ProxyTCPListener{
-			Address: u.Host,
-			Network: "tcp",
-		}, nil
+	go func() {
+		if n, err := io.Copy(left, right); err != nil {
+			err2 = err
+		} else {
+			n2 = int(n)
+		}
 
-	// TODO: implement dialer and tls config parsing
-	case proxy.ProxySchemeTLS:
-		return &gtls.ProxyTLS{
-			Address: u.Host,
-			Network: "tcp",
-		}, nil
+		left.Close()
+		wg.Done()
+	}()
 
-	// TODO: implement tls config parsing
-	case proxy.ProxySchemeTLSListen:
-		config := &tls.Config{}
-		return &gtls.ProxyTLSListener{
-			Address: u.Host,
-			Config:  config,
-			Network: "tcp",
-		}, nil
+	wg.Wait()
 
-	case proxy.ProxySchemeTUN:
-		return tun.CreateProxyTUN(u)
-
-	case proxy.ProxySchemeWS:
-		return &websocket.ProxyWS{
-			Address:   u.Host,
-			KeepAlive: 20 * time.Second, // TODO: Make configurable.
-			Path:      u.Path,
-			Scheme:    proxy.ProxySchemeWS,
-		}, nil
-
-	case proxy.ProxySchemeWSListen:
-		return &websocket.ProxyWSListener{
-			Address: u.Host,
-			Path:    u.Path,
-		}, nil
+	if err1 != nil && err2 != nil {
+		err = fmt.Errorf("both copier failed; left: %s; right: %s", err1, err2)
+	} else {
+		if err1 != nil {
+			err = err1
+		} else if err2 != nil {
+			err = err2
+		}
 	}
 
-	return nil, fmt.Errorf("%w: %s", proxy.ErrProxyNotSupported, u)
+	return n1, n2, err
 }
 
-func connect(node any) (io.ReadWriteCloser, error) {
-	switch p := node.(type) {
-	case io.ReadWriteCloser:
-		return p, nil
+func createProxy(addr *proxy.ProxyAddr) (*proxy.Proxy, error) {
+	ep, ok := proxy.ProxyRegistry[addr.ProxyScheme()]
+	if !ok {
+		return nil, fmt.Errorf("%w: %s", proxy.ErrProxyNotSupported, addr)
+	}
+	return ep.Create(addr)
+}
 
-	case *stdio.StdioWrapper:
-		p.Reopen()
-		return p, nil
-
-	case proxy.ProxyDialer:
-		conn, err := p.Dial()
-		if err != nil {
-			return nil, err
-		}
-		return conn, nil
-
-	case proxy.ProxyListener:
-		ln, err := p.Listen()
-		if err != nil {
-			return nil, err
-		}
-		conn, err := ln.Accept()
-		if err != nil {
-			return nil, err
-		}
-		return conn, err
+func mainLoop(left *proxy.Proxy, right *proxy.Proxy) error {
+	connLeft, err := left.Connect()
+	if err != nil {
+		return err
 	}
 
-	panic("BUG: Wrong proxy type")
-}
-
-func fixupURL(rawURL string) string {
-	switch {
-	case rawURL == "-":
-		return "stdio:"
-	case strings.HasPrefix(rawURL, "exec:") && !strings.Contains(rawURL, "?"):
-		cmdEncoded := url.QueryEscape(strings.TrimPrefix(rawURL, "exec:"))
-		return fmt.Sprintf("exec:?cmd=%s", cmdEncoded)
-	}
-
-	return rawURL
-}
-
-func mainLoop(left any, right any) {
-	connLeft, err := connect(left)
+	connRight, err := right.Connect()
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
-	connRight, err := connect(right)
+	_, _, err = bidirectCopy(connLeft, connRight)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		return err
 	}
 
-	_, _, err = helpers.BidirectCopy(connLeft, connRight)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
+	return nil
 }
 
 type proxyCommand struct {
@@ -147,48 +96,41 @@ type proxyCommand struct {
 }
 
 func (c *proxyCommand) run(cmd *cobra.Command, args []string) error {
+	if len(args) != 2 {
+		return fmt.Errorf("provide two urls")
+	}
+
 	var (
-		urlLeftRaw  string
-		urlRightRaw string
+		addrLeftRaw  = args[0]
+		addrRightRaw = args[1]
 	)
 
-	if len(args) == 0 || len(args) > 2 {
-		return fmt.Errorf("provide one or two urls")
-	}
-
-	if len(args) == 1 {
-		urlRightRaw = "stdio:"
-	} else {
-		urlRightRaw = fixupURL(args[1])
-	}
-	urlLeftRaw = fixupURL(args[0])
-
-	urlLeft, err := url.Parse(urlLeftRaw)
+	addrLeft, err := proxy.ParseAddr(addrLeftRaw)
 	if err != nil {
 		return err
 	}
 
-	urlRight, err := url.Parse(urlRightRaw)
+	addrRight, err := proxy.ParseAddr(addrRightRaw)
 	if err != nil {
 		return err
 	}
 
-	proxyLeft, err := createProxy(urlLeft)
+	proxyLeft, err := createProxy(addrLeft)
 	if err != nil {
 		return err
 	}
 
-	proxyRight, err := createProxy(urlRight)
+	proxyRight, err := createProxy(addrRight)
 	if err != nil {
 		return err
 	}
 
-	if c.state.keepRunning {
+	if c.state.loop {
 		for {
-			mainLoop(proxyLeft, proxyRight)
+			if err := mainLoop(proxyLeft, proxyRight); err != nil {
+				return err
+			}
 		}
-	} else {
-		mainLoop(proxyLeft, proxyRight)
 	}
-	return nil
+	return mainLoop(proxyLeft, proxyRight)
 }

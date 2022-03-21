@@ -5,41 +5,45 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"syscall"
 	"time"
+
+	"codeberg.org/rumpelsepp/gcat/lib/proxy"
+	"golang.org/x/sys/unix"
 )
 
-type StdioWrapper struct {
-	Stdin  *os.File
-	Stdout *os.File
+type stdioWrapper struct {
+	proxy.BaseConn
+
+	stdin  *os.File
+	stdout *os.File
 	closed bool
 }
 
-func NewStdioWrapper() *StdioWrapper {
-	if err := syscall.SetNonblock(syscall.Stdin, true); err != nil {
+func newStdioWrapper() *stdioWrapper {
+	if err := unix.SetNonblock(unix.Stdin, true); err != nil {
 		panic(err)
 	}
-	if err := syscall.SetNonblock(syscall.Stdout, true); err != nil {
+	if err := unix.SetNonblock(unix.Stdout, true); err != nil {
 		panic(err)
 	}
-	return &StdioWrapper{
-		Stdin:  os.NewFile(uintptr(syscall.Stdin), "/dev/stdin"),
-		Stdout: os.NewFile(uintptr(syscall.Stdout), "/dev/stdout"),
+	return &stdioWrapper{
+		stdin:  os.NewFile(uintptr(unix.Stdin), "/dev/stdin"),
+		stdout: os.NewFile(uintptr(unix.Stdout), "/dev/stdout"),
 		closed: false,
 	}
 }
 
-func (w *StdioWrapper) Read(p []byte) (int, error) {
+func (w *stdioWrapper) Read(p []byte) (int, error) {
 	for {
 		if w.closed {
 			return 0, io.EOF
 		}
 		// In order to be able to properly cancel helpers.BidirectCopy(),
 		// an artificial ReadDeadline is used.
-		if err := w.Stdin.SetReadDeadline(time.Now().Add(1 * time.Second)); err != nil {
+		if err := w.stdin.SetReadDeadline(time.Now().Add(1 * time.Second)); err != nil {
 			return 0, err
 		}
-		n, err := w.Stdin.Read(p)
+		n, err := w.stdin.Read(p)
 
 		// The artificial poll timeout triggered.
 		if errors.Is(err, os.ErrDeadlineExceeded) {
@@ -50,14 +54,14 @@ func (w *StdioWrapper) Read(p []byte) (int, error) {
 	}
 }
 
-func (w *StdioWrapper) Write(p []byte) (int, error) {
+func (w *stdioWrapper) Write(p []byte) (int, error) {
 	if w.closed {
 		return 0, io.ErrClosedPipe
 	}
-	return w.Stdout.Write(p)
+	return w.stdout.Write(p)
 }
 
-func (w *StdioWrapper) Reopen() error {
+func (w *stdioWrapper) Reopen() error {
 	if !w.closed {
 		return fmt.Errorf("stdio still open")
 	}
@@ -65,10 +69,24 @@ func (w *StdioWrapper) Reopen() error {
 	return nil
 }
 
-func (w *StdioWrapper) Close() error {
+func (w *stdioWrapper) Close() error {
 	if w.closed {
 		return fmt.Errorf("stdio already closed")
 	}
 	w.closed = true
 	return nil
+}
+
+func Create(addr *proxy.ProxyAddr) (*proxy.Proxy, error) {
+	return &proxy.Proxy{Conn: newStdioWrapper()}, nil
+}
+
+func init() {
+	scheme := proxy.ProxyScheme("stdio")
+
+	proxy.ProxyRegistry[scheme] = proxy.ProxyEntryPoint{
+		Scheme:    scheme,
+		Create:    Create,
+		ShortHelp: "just use stdio; shortcut is `-`",
+	}
 }

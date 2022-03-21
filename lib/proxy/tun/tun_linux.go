@@ -2,21 +2,24 @@ package tun
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"os/user"
 	"strconv"
 
+	"codeberg.org/rumpelsepp/gcat/lib/proxy"
 	"github.com/vishvananda/netlink"
 )
 
 type NativeTUN struct {
 	*os.File
 	netlink.Link
+	baseConn proxy.BaseConn
 }
 
-func CreateTun(name string) (*NativeTUN, error) {
+func CreateNativeTun(addr *proxy.ProxyAddr) (*NativeTUN, error) {
 	la := netlink.NewLinkAttrs()
-	la.Name = name
+	la.Name = addr.Query().Get("dev")
 
 	u, err := user.Current()
 	if err != nil {
@@ -54,7 +57,12 @@ func CreateTun(name string) (*NativeTUN, error) {
 	if len(link.Fds) != 1 {
 		return nil, fmt.Errorf("BUG: got too much tuntap fds")
 	}
-	return &NativeTUN{Link: iface, File: link.Fds[0]}, nil
+	return &NativeTUN{
+		baseConn: proxy.BaseConn{
+			LocalAddress: addr,
+		},
+		Link: iface,
+		File: link.Fds[0]}, nil
 }
 
 func (tun *NativeTUN) Close() error {
@@ -65,6 +73,14 @@ func (tun *NativeTUN) Close() error {
 		return err
 	}
 	return netlink.LinkDel(tun.Link)
+}
+
+func (tun *NativeTUN) LocalAddr() net.Addr {
+	return tun.baseConn.LocalAddr()
+}
+
+func (tun *NativeTUN) RemoteAddr() net.Addr {
+	return tun.baseConn.RemoteAddr()
 }
 
 func (tun *NativeTUN) Index() int {
