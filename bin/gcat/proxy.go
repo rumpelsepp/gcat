@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"net"
 	"sync"
 
 	"codeberg.org/rumpelsepp/gcat/lib/proxy"
@@ -13,7 +14,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func bidirectCopy(left io.ReadWriteCloser, right io.ReadWriteCloser) (int, int, error) {
+func bidirectCopy(left net.Conn, right net.Conn) (int, int, error) {
 	var (
 		n1   = 0
 		n2   = 0
@@ -105,7 +106,7 @@ func (c *proxyCommand) run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	proxyLeft, err :=  proxy.Registry.Create(addrLeft)
+	proxyLeft, err := proxy.Registry.Create(addrLeft)
 	if err != nil {
 		return err
 	}
