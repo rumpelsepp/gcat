@@ -78,15 +78,13 @@ func (w *stdioWrapper) Close() error {
 }
 
 func Create(addr *proxy.ProxyAddr) (*proxy.Proxy, error) {
-	return &proxy.Proxy{Conn: newStdioWrapper()}, nil
+	return proxy.CreateProxyFromConn(newStdioWrapper()), nil
 }
 
 func init() {
-	scheme := proxy.ProxyScheme("stdio")
-
-	proxy.ProxyRegistry[scheme] = proxy.ProxyEntryPoint{
-		Scheme:    scheme,
+	proxy.Registry.Add(proxy.ProxyEntryPoint{
+		Scheme:    "stdio",
 		Create:    Create,
 		ShortHelp: "just use stdio; shortcut is `-`",
-	}
+	})
 }

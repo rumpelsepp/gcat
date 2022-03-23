@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"io"
-	"os"
 	"sync"
 
 	"codeberg.org/rumpelsepp/gcat/lib/proxy"
@@ -63,14 +62,6 @@ func bidirectCopy(left io.ReadWriteCloser, right io.ReadWriteCloser) (int, int, 
 	return n1, n2, err
 }
 
-func createProxy(addr *proxy.ProxyAddr) (*proxy.Proxy, error) {
-	ep, ok := proxy.ProxyRegistry[addr.ProxyScheme()]
-	if !ok {
-		return nil, fmt.Errorf("%w: %s", proxy.ErrProxyNotSupported, addr)
-	}
-	return ep.Create(addr)
-}
-
 func mainLoop(left *proxy.Proxy, right *proxy.Proxy) error {
 	connLeft, err := left.Connect()
 	if err != nil {
@@ -79,8 +70,7 @@ func mainLoop(left *proxy.Proxy, right *proxy.Proxy) error {
 
 	connRight, err := right.Connect()
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		return err
 	}
 
 	_, _, err = bidirectCopy(connLeft, connRight)
@@ -115,12 +105,12 @@ func (c *proxyCommand) run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	proxyLeft, err := createProxy(addrLeft)
+	proxyLeft, err :=  proxy.Registry.Create(addrLeft)
 	if err != nil {
 		return err
 	}
 
-	proxyRight, err := createProxy(addrRight)
+	proxyRight, err := proxy.Registry.Create(addrRight)
 	if err != nil {
 		return err
 	}

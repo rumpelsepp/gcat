@@ -6,7 +6,7 @@ import (
 )
 
 func TestSpawn(t *testing.T) {
-	proxy := ExecDialer{
+	proxy := ExecProxy{
 		command: exec.Command("cat", "/dev/urandom"),
 	}
 

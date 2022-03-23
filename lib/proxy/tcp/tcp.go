@@ -17,13 +17,12 @@ func (p *ProxyTCP) Dial() (net.Conn, error) {
 }
 
 func CreateTCPProxy(addr *proxy.ProxyAddr) (*proxy.Proxy, error) {
-	return &proxy.Proxy{
-		Dialer: &ProxyTCP{
+	return proxy.CreateProxyFromDialer(
+		 &ProxyTCP{
 			Network: "tcp",
 			Address: addr.Host,
 			Dialer:  net.Dialer{},
-		},
-	}, nil
+		}) , nil
 }
 
 type ProxyTCPListener struct {
@@ -60,27 +59,23 @@ func (p *ProxyTCPListener) Accept() (net.Conn, error) {
 }
 
 func CreateTCPListenProxy(addr *proxy.ProxyAddr) (*proxy.Proxy, error) {
-	return &proxy.Proxy{
-		Listener: &ProxyTCPListener{
+	return proxy.CreateProxyFromListener(
+		&ProxyTCPListener{
 			Network: "tcp",
 			Address: addr.Host,
-		},
-	}, nil
+		}), nil
 }
 
 func init() {
-	scheme := proxy.ProxyScheme("tcp")
-
-	proxy.ProxyRegistry[scheme] = proxy.ProxyEntryPoint{
-		Scheme:    scheme,
+	proxy.Registry.Add(proxy.ProxyEntryPoint{
+		Scheme:    "tcp",
 		Create:    CreateTCPProxy,
 		ShortHelp: "connect to a tcp host:port",
-	}
+	})
 
-	scheme = proxy.ProxyScheme("tcp-listen")
-	proxy.ProxyRegistry[scheme] = proxy.ProxyEntryPoint{
-		Scheme:    scheme,
+	proxy.Registry.Add(proxy.ProxyEntryPoint{
+		Scheme:    "tcp-listen",
 		Create:    CreateTCPListenProxy,
 		ShortHelp: "tcp listen on host:port",
-	}
+	})
 }

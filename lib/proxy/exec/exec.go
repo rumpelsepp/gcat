@@ -74,20 +74,17 @@ func CreateProxy(addr *proxy.ProxyAddr) (*proxy.Proxy, error) {
 		cmd      = query.Get("cmd")
 		cmdParts = strings.Split(cmd, " ")
 	)
-	return &proxy.Proxy{
-		Dialer: &ExecDialer{
+	return proxy.CreateProxyFromDialer(
+		&ExecDialer{
 			command:    exec.Command(cmdParts[0], cmdParts[1:]...),
 			remoteAddr: addr,
-		},
-	}, nil
+		}), nil
 }
 
 func init() {
-	scheme := proxy.ProxyScheme("exec")
-
-	proxy.ProxyRegistry[scheme] = proxy.ProxyEntryPoint{
-		Scheme:    scheme,
+	proxy.Registry.Add(proxy.ProxyEntryPoint{
+		Scheme:    "exec",
 		Create:    CreateProxy,
 		ShortHelp: "spawn a programm and connect via stdio",
-	}
+	})
 }

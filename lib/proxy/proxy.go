@@ -7,6 +7,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"golang.org/x/exp/maps"
 )
 
 var (
@@ -18,26 +20,14 @@ var (
 
 type ProxyScheme string
 
-const (
-	ProxySchemeExec      ProxyScheme = "exec"
-	ProxySchemeSTDIO                 = "stdio"
-	ProxySchemeTCP                   = "tcp"
-	ProxySchemeTCPListen             = "tcp-listen"
-	ProxySchemeTLS                   = "tls"
-	ProxySchemeTLSListen             = "tls-listen"
-	ProxySchemeTUN                   = "tun"
-	ProxySchemeWS                    = "ws"
-	ProxySchemeWSListen              = "ws-listen"
-)
-
-type ProxyKind string
-
 func (s ProxyScheme) IsListener() bool {
 	if strings.Contains(string(s), "listen") {
 		return true
 	}
 	return false
 }
+
+type ProxyKind string
 
 const (
 	ProxyKindListener        ProxyKind = "listener"
@@ -59,6 +49,18 @@ type Proxy struct {
 	Listener ProxyListener
 	Dialer   ProxyDialer
 	Conn     net.Conn
+}
+
+func CreateProxyFromConn(conn net.Conn) *Proxy {
+	return &Proxy{Conn: conn}
+}
+
+func CreateProxyFromDialer(d ProxyDialer) *Proxy {
+	return &Proxy{Dialer: d}
+}
+
+func CreateProxyFromListener(ln ProxyListener) *Proxy {
+	return &Proxy{Listener: ln}
 }
 
 func (p *Proxy) Kind() ProxyKind {
@@ -176,4 +178,31 @@ type ProxyEntryPoint struct {
 	ShortHelp string
 }
 
-var ProxyRegistry = make(map[ProxyScheme]ProxyEntryPoint)
+type ProxyRegistry struct {
+	data map[ProxyScheme]ProxyEntryPoint
+}
+
+func (r ProxyRegistry) Keys() []ProxyScheme {
+	return maps.Keys(r.data)
+}
+
+func (r ProxyRegistry) Values() []ProxyEntryPoint {
+	return maps.Values(r.data)
+}
+
+func (r *ProxyRegistry) Add(ep ProxyEntryPoint) {
+	if _, ok := r.data[ep.Scheme]; ok {
+		panic(fmt.Sprintf("proxy with scheme %s already registered", ep.Scheme))
+	}
+	r.data[ep.Scheme] = ep
+}
+
+func (r *ProxyRegistry) Create(addr *ProxyAddr) (*Proxy, error) {
+	ep, ok := r.data[addr.ProxyScheme()]
+	if !ok {
+		return nil, fmt.Errorf("%w: %s", ErrProxyNotSupported, addr.ProxyScheme())
+	}
+	return ep.Create(addr)
+}
+
+var Registry = ProxyRegistry{data: make(map[ProxyScheme]ProxyEntryPoint)}

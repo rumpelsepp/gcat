@@ -64,7 +64,7 @@ func main() {
 				t := table.NewWriter()
 				t.SetOutputMirror(cmd.OutOrStdout())
 				t.AppendHeader(table.Row{"Scheme", "Description"})
-				for _, v := range proxy.ProxyRegistry {
+				for _, v := range proxy.Registry.Values() {
 					t.AppendRow(table.Row{v.Scheme, v.ShortHelp})
 				}
 				t.SortBy([]table.SortBy{{Name: "Scheme"}})

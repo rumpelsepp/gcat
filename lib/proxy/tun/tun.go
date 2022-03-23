@@ -58,19 +58,13 @@ func CreateProxyTUN(addr *proxy.ProxyAddr) (*proxy.Proxy, error) {
 	if err := tun.SetUP(); err != nil {
 		return nil, err
 	}
-
-	return &proxy.Proxy{
-		Conn: &ProxyTUN{tun},
-	}, nil
-
+	return proxy.CreateProxyFromConn(&ProxyTUN{tun}), nil
 }
 
 func init() {
-	scheme := proxy.ProxyScheme("tun")
-
-	proxy.ProxyRegistry[scheme] = proxy.ProxyEntryPoint{
-		Scheme:    scheme,
+	proxy.Registry.Add(proxy.ProxyEntryPoint{
+		Scheme:    "tun",
 		Create:    CreateProxyTUN,
 		ShortHelp: "allocate a tun device and send/recv raw ip packets",
-	}
+	})
 }
