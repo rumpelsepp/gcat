@@ -11,6 +11,7 @@ import (
 	_ "codeberg.org/rumpelsepp/gcat/lib/proxy/stdio"
 	_ "codeberg.org/rumpelsepp/gcat/lib/proxy/tcp"
 	_ "codeberg.org/rumpelsepp/gcat/lib/proxy/tun"
+	_ "codeberg.org/rumpelsepp/gcat/lib/proxy/websocket"
 	"github.com/spf13/cobra"
 )
 
@@ -106,7 +107,7 @@ command.
 
   Tunnel IP traffic through SSH (https://rumpelsepp.org/blog/vpn-over-ssh/):
 
-      # gcat proxy "tun://192.168.255.1/24" exec:'ssh root@HOST "gcat tun://192.168.255.2/24 -"'
+      # gcat proxy "tun://192.168.255.1/24" exec:'ssh root@HOST gcat proxy tun://192.168.255.2/24 -'
 
   SSH Tunnel through Websocket (https://rumpelsepp.org/blog/ssh-through-websocket/):
 
