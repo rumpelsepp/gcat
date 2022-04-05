@@ -2,7 +2,7 @@ GO ?= go
 
 .PHONY: gcat
 gcat:
-	$(GO) build $(GOFLAGS) -o $@ ./bin/$@
+	$(GO) build $(GOFLAGS) -o $@ ./cmd/$@
 
 .PHONY: test
 test:

@@ -82,46 +82,59 @@ func mainLoop(left *proxy.Proxy, right *proxy.Proxy) error {
 	return nil
 }
 
-type proxyCommand struct {
-	state *runtimeState
+type proxyOptions struct {
+	loop bool
 }
 
-func (c *proxyCommand) run(cmd *cobra.Command, args []string) error {
-	if len(args) != 2 {
-		return fmt.Errorf("provide two urls")
-	}
+var (
+	proxyOpts proxyOptions
+	proxyCmd = &cobra.Command{
+		Use:   "proxy [flags] URL1 URL2",
+		Short: "Act as a fancy socat like proxy tool",
+		RunE:  func(cmd *cobra.Command, args []string) error {
+			if len(args) != 2 {
+				return fmt.Errorf("provide two urls")
+			}
 
-	var (
-		addrLeftRaw  = args[0]
-		addrRightRaw = args[1]
-	)
+			var (
+				addrLeftRaw  = args[0]
+				addrRightRaw = args[1]
+			)
 
-	addrLeft, err := proxy.ParseAddr(addrLeftRaw)
-	if err != nil {
-		return err
-	}
-
-	addrRight, err := proxy.ParseAddr(addrRightRaw)
-	if err != nil {
-		return err
-	}
-
-	proxyLeft, err := proxy.Registry.Create(addrLeft)
-	if err != nil {
-		return err
-	}
-
-	proxyRight, err := proxy.Registry.Create(addrRight)
-	if err != nil {
-		return err
-	}
-
-	if c.state.loop {
-		for {
-			if err := mainLoop(proxyLeft, proxyRight); err != nil {
+			addrLeft, err := proxy.ParseAddr(addrLeftRaw)
+			if err != nil {
 				return err
 			}
-		}
+
+			addrRight, err := proxy.ParseAddr(addrRightRaw)
+			if err != nil {
+				return err
+			}
+
+			proxyLeft, err := proxy.Registry.Create(addrLeft)
+			if err != nil {
+				return err
+			}
+
+			proxyRight, err := proxy.Registry.Create(addrRight)
+			if err != nil {
+				return err
+			}
+
+			if proxyOpts.loop {
+				for {
+					if err := mainLoop(proxyLeft, proxyRight); err != nil {
+						return err
+					}
+				}
+			}
+			return mainLoop(proxyLeft, proxyRight)
+		},
 	}
-	return mainLoop(proxyLeft, proxyRight)
+)
+
+func init() {
+	rootCmd.AddCommand(proxyCmd)
+	f := proxyCmd.Flags()
+	f.BoolVarP(&proxyOpts.loop, "loop", "l", false, "keep the listener running")
 }

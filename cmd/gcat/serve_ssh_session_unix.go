@@ -15,68 +15,68 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 package main
-
-import (
-	"context"
-	"fmt"
-	"io"
-	"os"
-	"os/exec"
-	"os/user"
-
-	"github.com/creack/pty"
-	"github.com/gliderlabs/ssh"
-)
-
-func (c *serveSSHCommand) createPty(s ssh.Session, shell string) {
-	var (
-		ptyReq, winCh, _ = s.Pty()
-		ctx, cancel      = context.WithCancel(context.Background())
-		cmd              = exec.CommandContext(ctx, shell)
-	)
-	defer cancel()
-
-	cmd.Env = append(cmd.Env, fmt.Sprintf("TERM=%s", ptyReq.Term))
-	if currentUser, err := user.Current(); err == nil {
-		cmd.Env = append(cmd.Env, fmt.Sprintf("HOME=%s", currentUser.HomeDir))
-	}
-	f, err := pty.Start(cmd)
-	if err != nil {
-		c.logger.LogCriticalf("Could not start shell: %s", err)
-		os.Exit(1)
-	}
-	go func() {
-		for win := range winCh {
-			winSize := &pty.Winsize{Rows: uint16(win.Height), Cols: uint16(win.Width)}
-			pty.Setsize(f, winSize)
-		}
-	}()
-
-	go func() {
-		io.Copy(f, s)
-		s.Close()
-	}()
-	go func() {
-		io.Copy(s, f)
-		s.Close()
-	}()
-
-	done := make(chan error, 1)
-	go func() { done <- cmd.Wait() }()
-
-	select {
-	case err := <-done:
-		if err != nil {
-			c.logger.LogErrorf("Session ended with error: %s", err)
-			s.Exit(255)
-			return
-		}
-		c.logger.LogInfof("Session ended normally")
-		s.Exit(cmd.ProcessState.ExitCode())
-		return
-
-	case <-s.Context().Done():
-		c.logger.LogInfof("Session terminated: %s", s.Context().Err())
-		return
-	}
-}
+//
+// import (
+// 	"context"
+// 	"fmt"
+// 	"io"
+// 	"os"
+// 	"os/exec"
+// 	"os/user"
+//
+// 	"github.com/creack/pty"
+// 	"github.com/gliderlabs/ssh"
+// )
+//
+// func (c *serveSSHOptions) createPty(s ssh.Session, shell string) {
+// 	var (
+// 		ptyReq, winCh, _ = s.Pty()
+// 		ctx, cancel      = context.WithCancel(context.Background())
+// 		cmd              = exec.CommandContext(ctx, shell)
+// 	)
+// 	defer cancel()
+//
+// 	cmd.Env = append(cmd.Env, fmt.Sprintf("TERM=%s", ptyReq.Term))
+// 	if currentUser, err := user.Current(); err == nil {
+// 		cmd.Env = append(cmd.Env, fmt.Sprintf("HOME=%s", currentUser.HomeDir))
+// 	}
+// 	f, err := pty.Start(cmd)
+// 	if err != nil {
+// 		c.logger.LogCriticalf("Could not start shell: %s", err)
+// 		os.Exit(1)
+// 	}
+// 	go func() {
+// 		for win := range winCh {
+// 			winSize := &pty.Winsize{Rows: uint16(win.Height), Cols: uint16(win.Width)}
+// 			pty.Setsize(f, winSize)
+// 		}
+// 	}()
+//
+// 	go func() {
+// 		io.Copy(f, s)
+// 		s.Close()
+// 	}()
+// 	go func() {
+// 		io.Copy(s, f)
+// 		s.Close()
+// 	}()
+//
+// 	done := make(chan error, 1)
+// 	go func() { done <- cmd.Wait() }()
+//
+// 	select {
+// 	case err := <-done:
+// 		if err != nil {
+// 			c.logger.LogErrorf("Session ended with error: %s", err)
+// 			s.Exit(255)
+// 			return
+// 		}
+// 		c.logger.LogInfof("Session ended normally")
+// 		s.Exit(cmd.ProcessState.ExitCode())
+// 		return
+//
+// 	case <-s.Context().Done():
+// 		c.logger.LogInfof("Session terminated: %s", s.Context().Err())
+// 		return
+// 	}
+// }
