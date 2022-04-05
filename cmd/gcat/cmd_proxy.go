@@ -91,6 +91,26 @@ var (
 	proxyCmd = &cobra.Command{
 		Use:   "proxy [flags] URL1 URL2",
 		Short: "Act as a fancy socat like proxy tool",
+		Long: `The proxy command needs two arguments which specify the data pipeline.
+The arguments are URLs; in some rare cases it might be required to escape
+certain parts of the url. For more information to URLs see the "proxies"
+command.
+`,
+		Example: `  Listen on localhost tcp port 1234 and proxy to stdio.
+
+      $ gcat proxy tcp-listen://localhost:1234 -
+
+  Forward TCP traffic from "localhost:8080" to "1.1.1.1:80":
+
+      $ gcat proxy tcp-listen://localhost:1234 tcp://1.1.1.1:80
+
+  Tunnel IP traffic through SSH (https://rumpelsepp.org/blog/vpn-over-ssh/):
+
+      # gcat proxy "tun://192.168.255.1/24" exec:'ssh root@HOST "gcat tun://192.168.255.2/24 -"'
+
+  SSH Tunnel through Websocket (https://rumpelsepp.org/blog/ssh-through-websocket/):
+
+      $ ssh -o 'ProxyCommand=gcat proxy wss://example.org/ssh/' user@example.org`,
 		RunE:  func(cmd *cobra.Command, args []string) error {
 			if len(args) != 2 {
 				return fmt.Errorf("provide two urls")

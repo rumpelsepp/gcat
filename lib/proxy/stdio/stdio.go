@@ -86,5 +86,14 @@ func init() {
 		Scheme:    "stdio",
 		Create:    Create,
 		ShortHelp: "just use stdio; shortcut is `-`",
+		Help: `No arguments.
+
+Example:
+
+  $ gcat proxy tcp-listen://localhost:1234 stdio:
+
+Short form:
+
+  $ gcat proxy tcp-listen://localhost:1234 -`,
 	})
 }

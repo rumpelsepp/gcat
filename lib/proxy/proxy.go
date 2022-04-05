@@ -176,6 +176,7 @@ type ProxyEntryPoint struct {
 	Create    func(addr *ProxyAddr) (*Proxy, error)
 	Scheme    ProxyScheme
 	ShortHelp string
+	Help      string
 }
 
 type ProxyRegistry struct {
@@ -188,6 +189,13 @@ func (r ProxyRegistry) Keys() []ProxyScheme {
 
 func (r ProxyRegistry) Values() []ProxyEntryPoint {
 	return maps.Values(r.data)
+}
+
+func (r ProxyRegistry) Get(key ProxyScheme) (ProxyEntryPoint, error) {
+	if v, ok := r.data[key]; ok {
+		return v, nil
+	}
+	return ProxyEntryPoint{}, fmt.Errorf("no such proxy: %s", key)
 }
 
 func (r *ProxyRegistry) Add(ep ProxyEntryPoint) {

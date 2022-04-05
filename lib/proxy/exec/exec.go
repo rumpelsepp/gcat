@@ -86,5 +86,18 @@ func init() {
 		Scheme:    "exec",
 		Create:    CreateProxy,
 		ShortHelp: "spawn a programm and connect via stdio",
+		Help: `Read and write from/to a command.
+
+Arguments:
+
+  * "cmd": The relevant command.
+
+Example:
+
+  $ gcat proxy 'exec:?cmd=cat -'
+
+Short form:
+
+  $ gcat proxy 'exec:cat -'`,
 	})
 }

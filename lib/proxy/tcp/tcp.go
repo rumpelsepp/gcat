@@ -71,11 +71,25 @@ func init() {
 		Scheme:    "tcp",
 		Create:    CreateTCPProxy,
 		ShortHelp: "connect to a tcp host:port",
+		Help: `Act as a TCP client.
+
+Arguments:
+
+  * Host: The target to connect to.
+
+Example:
+
+  $ gcat proxy tcp://localhost:1234`,
 	})
 
 	proxy.Registry.Add(proxy.ProxyEntryPoint{
 		Scheme:    "tcp-listen",
 		Create:    CreateTCPListenProxy,
 		ShortHelp: "tcp listen on host:port",
+		Help: `Act as a TCP server.
+
+Example:
+
+  $ gcat proxy tcp-listen://localhost:1234`,
 	})
 }

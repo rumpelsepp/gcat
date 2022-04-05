@@ -8,10 +8,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type globalOptions struct {
-	verbose bool
-}
-
 func getVersion() string {
 	var builder strings.Builder
 
@@ -32,27 +28,40 @@ func getVersion() string {
 	return strings.TrimSpace(builder.String())
 }
 
+type globalOptions struct {
+	verbose bool
+}
+
 var (
 	gopts   globalOptions
 	rootCmd = &cobra.Command{
 		Use:          "gcat",
 		Short:        "gcat -- the swiss army knife for network protocols",
+		Long: `gcat is a tool for penetration testers and sysadmins.
+Its design is roughly based on "socat" (hence the name).
+However, "gcat" provides the following delta to "socat":
+
+  - "serve" command: "gcat" allows starting several different servers for quick usage.
+    The "serve" command might be used in penetration tests or quick 'n' dirty lab setups.
+    Here is an excerpt for supported protocols: "doh", "ftp", "http", "ssh", "webdav".
+
+  - "proxy" command: it works similar to "socat". Data is proxied between two proxy modules, 
+    specified as command line arguments. The "proxy" command uses URLs for its arguments.`,
 		Version:      getVersion(),
 		SilenceUsage: true,
 	}
 	serveCmd = &cobra.Command{
 		Use:   "serve",
 		Short: "Run a specific service",
+		Example: `  $ gcat serve http
+  $ gcat serve ssh -k /etc/ssh/ssh_host_ed25519_key -a ~/.ssh/authorized_keys`,
 	}
 )
 
 func main() {
-	// globals
 	gf := rootCmd.PersistentFlags()
 	gf.BoolVarP(&gopts.verbose, "verbose", "v", false, "enable verbose logging")
 
-	// gcat serve
 	rootCmd.AddCommand(serveCmd)
-
 	rootCmd.Execute()
 }
