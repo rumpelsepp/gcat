@@ -40,10 +40,10 @@ var (
 		Version:      getVersion(),
 		SilenceUsage: true,
 	}
-		serveCmd = &cobra.Command{
-			Use:   "serve",
-			Short: "Run a specific service",
-		}
+	serveCmd = &cobra.Command{
+		Use:   "serve",
+		Short: "Run a specific service",
+	}
 )
 
 func main() {
@@ -51,19 +51,8 @@ func main() {
 	gf := rootCmd.PersistentFlags()
 	gf.BoolVarP(&gopts.verbose, "verbose", "v", false, "enable verbose logging")
 
-	// serve
+	// gcat serve
 	rootCmd.AddCommand(serveCmd)
-
-	// // ssh
-	// // TODO: Add flags for ssh host keys and such
-	// serveCobraCmd.AddCommand(serveSSHCobraCmd)
-	// sshFlags := serveSSHCobraCmd.Flags()
-	// sshFlags.StringVarP(&serveSSHCmd.address, "listen", "l", ":2222", "SSH listen address")
-	// sshFlags.StringVarP(&serveSSHCmd.user, "user", "u", "gcat", "SSH user")
-	// sshFlags.StringVarP(&serveSSHCmd.passwd, "passwd", "p", "gcat", "SSH password")
-	// sshFlags.StringVarP(&serveSSHCmd.shell, "shell", "s", "/bin/bash", "shell to use")
-	// sshFlags.StringVarP(&serveSSHCmd.hostKey, "host-key", "k", "", "path to host key file, if empty a random key is generated")
-	// sshFlags.StringVarP(&serveSSHCmd.authorizedKeys, "authorized-keys", "a", "", "path to authorized_keys file")
 
 	rootCmd.Execute()
 }

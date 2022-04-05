@@ -15,7 +15,7 @@ type serveHTTPOptions struct {
 
 var (
 	serveHTTPOpts serveHTTPOptions
-	serveHTTPCmd = &cobra.Command{
+	serveHTTPCmd  = &cobra.Command{
 		Use:   "http",
 		Short: "Spawn a HTTP server",
 		RunE: func(cmd *cobra.Command, args []string) error {
