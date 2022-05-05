@@ -9,7 +9,7 @@ require (
 	github.com/gliderlabs/ssh v0.3.3
 	github.com/gorilla/handlers v1.5.1
 	github.com/gorilla/mux v1.8.0
-	github.com/jedib0t/go-pretty/v6 v6.3.0
+	github.com/jedib0t/go-pretty/v6 v6.3.1
 	github.com/miekg/dns v1.1.48
 	github.com/pkg/sftp v1.13.4
 	github.com/spf13/cobra v1.4.0
