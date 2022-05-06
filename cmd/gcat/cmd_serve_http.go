@@ -3,7 +3,7 @@ package main
 import (
 	"net/http"
 
-	"codeberg.org/rumpelsepp/gcat/lib/helper"
+	"github.com/rumpelsepp/gcat/lib/helper"
 	"github.com/spf13/cobra"
 )
 

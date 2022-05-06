@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"codeberg.org/rumpelsepp/gcat/lib/helper"
-	"codeberg.org/rumpelsepp/gcat/lib/server/doh"
+	"github.com/rumpelsepp/gcat/lib/helper"
+	"github.com/rumpelsepp/gcat/lib/server/doh"
 	"github.com/spf13/cobra"
 )
 

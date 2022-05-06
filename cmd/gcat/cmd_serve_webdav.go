@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"codeberg.org/rumpelsepp/gcat/lib/server/webdav"
+	"github.com/rumpelsepp/gcat/lib/server/webdav"
 	"github.com/Fraunhofer-AISEC/penlogger"
 	"github.com/spf13/cobra"
 )

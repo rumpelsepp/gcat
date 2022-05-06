@@ -4,7 +4,7 @@ import (
 	"crypto/tls"
 	"net/http"
 
-	"codeberg.org/rumpelsepp/gcat/lib/helper"
+	"github.com/rumpelsepp/gcat/lib/helper"
 	"github.com/Fraunhofer-AISEC/penlogger"
 	"golang.org/x/net/webdav"
 )

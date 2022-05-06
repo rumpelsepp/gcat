@@ -6,12 +6,12 @@ import (
 	"net"
 	"sync"
 
-	"codeberg.org/rumpelsepp/gcat/lib/proxy"
-	_ "codeberg.org/rumpelsepp/gcat/lib/proxy/exec"
-	_ "codeberg.org/rumpelsepp/gcat/lib/proxy/stdio"
-	_ "codeberg.org/rumpelsepp/gcat/lib/proxy/tcp"
-	_ "codeberg.org/rumpelsepp/gcat/lib/proxy/tun"
-	_ "codeberg.org/rumpelsepp/gcat/lib/proxy/websocket"
+	"github.com/rumpelsepp/gcat/lib/proxy"
+	_ "github.com/rumpelsepp/gcat/lib/proxy/exec"
+	_ "github.com/rumpelsepp/gcat/lib/proxy/stdio"
+	_ "github.com/rumpelsepp/gcat/lib/proxy/tcp"
+	_ "github.com/rumpelsepp/gcat/lib/proxy/tun"
+	_ "github.com/rumpelsepp/gcat/lib/proxy/websocket"
 	"github.com/spf13/cobra"
 )
 

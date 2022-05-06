@@ -1,4 +1,4 @@
-module codeberg.org/rumpelsepp/gcat
+module github.com/rumpelsepp/gcat
 
 go 1.18
 

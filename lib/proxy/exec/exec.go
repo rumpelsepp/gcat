@@ -7,7 +7,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"codeberg.org/rumpelsepp/gcat/lib/proxy"
+	"github.com/rumpelsepp/gcat/lib/proxy"
 )
 
 type cmdConn struct {

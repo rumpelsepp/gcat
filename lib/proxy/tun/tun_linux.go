@@ -7,7 +7,7 @@ import (
 	"os/user"
 	"strconv"
 
-	"codeberg.org/rumpelsepp/gcat/lib/proxy"
+	"github.com/rumpelsepp/gcat/lib/proxy"
 	"github.com/vishvananda/netlink"
 )
 

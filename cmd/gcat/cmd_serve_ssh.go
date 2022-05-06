@@ -1,7 +1,7 @@
 package main
 
 import (
-	gssh "codeberg.org/rumpelsepp/gcat/lib/server/ssh"
+	gssh "github.com/rumpelsepp/gcat/lib/server/ssh"
 	"github.com/spf13/cobra"
 )
 

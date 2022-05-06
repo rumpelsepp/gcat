@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"codeberg.org/rumpelsepp/gcat/lib/proxy"
+	"github.com/rumpelsepp/gcat/lib/proxy"
 	"golang.org/x/sys/unix"
 )
 

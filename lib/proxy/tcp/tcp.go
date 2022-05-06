@@ -3,7 +3,7 @@ package tcp
 import (
 	"net"
 
-	"codeberg.org/rumpelsepp/gcat/lib/proxy"
+	"github.com/rumpelsepp/gcat/lib/proxy"
 )
 
 type ProxyTCP struct {

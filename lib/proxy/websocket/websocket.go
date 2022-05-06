@@ -9,7 +9,7 @@ import (
 	"os"
 	"time"
 
-	"codeberg.org/rumpelsepp/gcat/lib/helper"
+	"github.com/rumpelsepp/gcat/lib/helper"
 	"nhooyr.io/websocket"
 )
 

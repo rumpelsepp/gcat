@@ -1,7 +1,7 @@
 package main
 
 import (
-	"codeberg.org/rumpelsepp/gcat/lib/proxy"
+	"github.com/rumpelsepp/gcat/lib/proxy"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/spf13/cobra"
 )

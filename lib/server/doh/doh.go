@@ -10,7 +10,7 @@ import (
 	"net/netip"
 	"sync"
 
-	"codeberg.org/rumpelsepp/gcat/lib/helper"
+	"github.com/rumpelsepp/gcat/lib/helper"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/miekg/dns"

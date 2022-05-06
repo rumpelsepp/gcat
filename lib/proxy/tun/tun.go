@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"codeberg.org/rumpelsepp/gcat/lib/proxy"
+	"github.com/rumpelsepp/gcat/lib/proxy"
 )
 
 type TUNDevice interface {
