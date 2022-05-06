@@ -116,13 +116,12 @@ func (srv *SSHServer) Run() error {
 			Handler: srv.makeSSHSessionHandler(srv.Shell),
 			Addr:    srv.Address,
 			PasswordHandler: func(ctx ssh.Context, pass string) bool {
-				passed := pass == srv.Passwd
-				if passed {
+				if pass == srv.Passwd {
 					srv.logger.LogInfof("Successful authentication with password from %s@%s", ctx.User(), ctx.RemoteAddr().String())
-				} else {
-					srv.logger.LogWarningf("Invalid password from %s@%s", ctx.User(), ctx.RemoteAddr().String())
+					return true
 				}
-				return passed
+				srv.logger.LogWarningf("Invalid password from %s@%s", ctx.User(), ctx.RemoteAddr().String())
+				return false
 			},
 			LocalPortForwardingCallback: func(ctx ssh.Context, dhost string, dport uint32) bool {
 				srv.logger.LogInfof("Accepted forward to %s:%d", dhost, dport)

@@ -50,18 +50,11 @@ However, "gcat" provides the following delta to "socat":
 		Version:      getVersion(),
 		SilenceUsage: true,
 	}
-	serveCmd = &cobra.Command{
-		Use:   "serve",
-		Short: "Run a specific service",
-		Example: `  $ gcat serve http
-  $ gcat serve ssh -k /etc/ssh/ssh_host_ed25519_key -a ~/.ssh/authorized_keys`,
-	}
 )
 
 func main() {
 	gf := rootCmd.PersistentFlags()
 	gf.BoolVarP(&gopts.verbose, "verbose", "v", false, "enable verbose logging")
 
-	rootCmd.AddCommand(serveCmd)
 	rootCmd.Execute()
 }

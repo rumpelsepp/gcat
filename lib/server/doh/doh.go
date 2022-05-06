@@ -11,7 +11,8 @@ import (
 	"sync"
 
 	"codeberg.org/rumpelsepp/gcat/lib/helper"
-	"github.com/gorilla/mux"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/miekg/dns"
 )
 
@@ -122,9 +123,13 @@ func (s *DoHServer) postRequest(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *DoHServer) Run() error {
-	r := mux.NewRouter()
-	r.HandleFunc(s.Path, s.getRequest).Methods(http.MethodGet).Headers("Content-Type", mime)
-	r.HandleFunc(s.Path, s.postRequest).Methods(http.MethodPost).Headers("Content-Type", mime)
+	r := chi.NewRouter()
+	r.Use(middleware.RequestID)
+	r.Use(middleware.RealIP)
+	r.Use(middleware.Logger)
+	r.Use(middleware.Recoverer)
+	r.Get(s.Path, s.getRequest)
+	r.Post(s.Path, s.postRequest)
 
 	httpServer, err := helper.NewHTTPServer(r, s.Listen, s.RequestLog, s.TLSConfig)
 	if err != nil {

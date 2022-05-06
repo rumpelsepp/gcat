@@ -22,7 +22,7 @@ var (
 			handler := http.NewServeMux()
 			handler.Handle(serveHTTPOpts.path, http.FileServer(http.Dir(serveHTTPOpts.root)))
 
-			server, err := helper.NewHTTPServer(handler, serveHTTPOpts.address, "", nil)
+			server, err := helper.NewHTTPServer(handler, serveOpts.listen, "", nil)
 			if err != nil {
 				return err
 			}
@@ -38,7 +38,5 @@ var (
 func init() {
 	serveCmd.AddCommand(serveHTTPCmd)
 	f := serveHTTPCmd.Flags()
-	f.StringVarP(&serveHTTPOpts.address, "address", "a", ":8080", "listen address")
-	f.StringVarP(&serveHTTPOpts.root, "root", "r", ".", "HTTP root directory")
 	f.StringVarP(&serveHTTPOpts.path, "path", "p", "/", "HTTP path")
 }
