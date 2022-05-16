@@ -10,7 +10,7 @@ require (
 	github.com/go-chi/chi/v5 v5.0.7
 	github.com/gorilla/handlers v1.5.1
 	github.com/jedib0t/go-pretty/v6 v6.3.1
-	github.com/miekg/dns v1.1.48
+	github.com/miekg/dns v1.1.49
 	github.com/pkg/sftp v1.13.4
 	github.com/spf13/cobra v1.4.0
 	github.com/vishvananda/netlink v1.2.0-beta
