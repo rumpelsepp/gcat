@@ -1,6 +1,0 @@
-pipeline:
-  setup:
-    image: golang:1.18beta1-bullseye
-    commands:
-      - make
-      - make test
