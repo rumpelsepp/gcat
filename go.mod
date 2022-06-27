@@ -12,7 +12,7 @@ require (
 	github.com/jedib0t/go-pretty/v6 v6.3.1
 	github.com/miekg/dns v1.1.49
 	github.com/pkg/sftp v1.13.4
-	github.com/spf13/cobra v1.4.0
+	github.com/spf13/cobra v1.5.0
 	github.com/vishvananda/netlink v1.2.1-beta.2
 	goftp.io/server/v2 v2.0.0
 	golang.org/x/exp v0.0.0-20220428152302-39d4317da171
