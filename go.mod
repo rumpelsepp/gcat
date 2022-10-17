@@ -12,7 +12,7 @@ require (
 	github.com/jedib0t/go-pretty/v6 v6.3.9
 	github.com/miekg/dns v1.1.49
 	github.com/pkg/sftp v1.13.5
-	github.com/spf13/cobra v1.5.0
+	github.com/spf13/cobra v1.6.0
 	github.com/vishvananda/netlink v1.2.1-beta.2
 	goftp.io/server/v2 v2.0.0
 	golang.org/x/exp v0.0.0-20220428152302-39d4317da171
@@ -28,7 +28,7 @@ require (
 	github.com/felixge/httpsnoop v1.0.2 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/gorilla/websocket v1.4.2 // indirect
-	github.com/inconshreveable/mousetrap v1.0.0 // indirect
+	github.com/inconshreveable/mousetrap v1.0.1 // indirect
 	github.com/klauspost/compress v1.15.3 // indirect
 	github.com/kr/fs v0.1.0 // indirect
 	github.com/mattn/go-runewidth v0.0.13 // indirect
