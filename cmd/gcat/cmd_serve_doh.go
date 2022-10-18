@@ -47,7 +47,7 @@ var (
 	serveDOHOpts serveDOHOptions
 	serveDOHCmd = &cobra.Command{
 		Use:   "doh",
-		Short: "Spawn a DOH server",
+		Short: "spawn a DOH server",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			upstreams, err := parseUpstreams(serveDOHOpts.upstream)
 			if err != nil {

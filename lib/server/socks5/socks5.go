@@ -10,8 +10,8 @@ import (
 	"syscall"
 	"time"
 
-	"codeberg.org/rumpelsepp/helpers"
-	penlog "github.com/Fraunhofer-AISEC/penlogger"
+	"github.com/rumpelsepp/helpers"
+	"go.uber.org/zap"
 )
 
 const (
@@ -99,7 +99,7 @@ type UsernamePasswordResponse struct {
 
 type Server struct {
 	Listen   string
-	Logger   *penlog.Logger
+	Logger   *zap.SugaredLogger
 	Auth     int
 	Username string
 	Password string
@@ -294,12 +294,12 @@ func (s *Server) serveClient(conn io.ReadWriteCloser) error {
 		if err == ErrNoAcceptableMethods {
 			s.sendMethodSelection(conn, AuthNoAcceptableMethods)
 		}
-		s.Logger.LogInfo(err)
+		s.Logger.Info(err)
 		conn.Close()
 		return err
 	}
 	if err := s.sendMethodSelection(conn, auth); err != nil {
-		s.Logger.LogInfo(err)
+		s.Logger.Info(err)
 		conn.Close()
 		return err
 	}
@@ -308,7 +308,7 @@ func (s *Server) serveClient(conn io.ReadWriteCloser) error {
 		case AuthUsernamePassword:
 			req, err := s.readUsernamePasswordReq(conn)
 			if err != nil {
-				s.Logger.LogInfo(err)
+				s.Logger.Info(err)
 				conn.Close()
 				return err
 			}
@@ -318,7 +318,7 @@ func (s *Server) serveClient(conn io.ReadWriteCloser) error {
 				return err
 			}
 			if err := s.sendUsernamePasswordReply(conn, 0); err != nil {
-				s.Logger.LogInfo(err)
+				s.Logger.Info(err)
 				conn.Close()
 				return err
 			}
@@ -329,7 +329,7 @@ func (s *Server) serveClient(conn io.ReadWriteCloser) error {
 	}
 	req, err := s.readRequest(conn)
 	if err != nil {
-		s.Logger.LogInfo(err)
+		s.Logger.Info(err)
 		conn.Close()
 		return err
 	}
@@ -356,32 +356,32 @@ func (s *Server) serveClient(conn io.ReadWriteCloser) error {
 		}
 		upstreamConn, err := net.DialTimeout("tcp", host, 2*time.Second)
 		if err != nil {
-			s.Logger.LogInfo(err)
+			s.Logger.Info(err)
 			if errors.Is(err, syscall.ECONNREFUSED) {
 				if err := s.sendError(conn, RepConnectionRefused); err != nil {
-					s.Logger.LogInfo(err)
+					s.Logger.Info(err)
 					return err
 				}
 			} else if errors.Is(err, syscall.EHOSTUNREACH) {
 				if err := s.sendError(conn, RepHostUnreachable); err != nil {
-					s.Logger.LogInfo(err)
+					s.Logger.Info(err)
 					return err
 				}
 			} else if errors.Is(err, syscall.ENETUNREACH) {
 				if err := s.sendError(conn, RepNetworkUnreachable); err != nil {
-					s.Logger.LogInfo(err)
+					s.Logger.Info(err)
 					return err
 				}
 			}
 			return err
 		}
 		if err := s.sendReply(conn, RepSucceeded, req.ATYP, addr, req.DSTPort); err != nil {
-			s.Logger.LogInfo(err)
+			s.Logger.Info(err)
 			upstreamConn.Close()
 			return err
 		}
 		if _, _, err = helpers.BidirectCopy(upstreamConn, conn); err != nil {
-			s.Logger.LogDebug(err)
+			s.Logger.Debug(err)
 			return err
 		}
 	}
@@ -397,7 +397,7 @@ func (s *Server) Serve() error {
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
-			s.Logger.LogInfo(err)
+			s.Logger.Info(err)
 			continue
 		}
 		go s.serveClient(conn)

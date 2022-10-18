@@ -5,14 +5,14 @@ import (
 	"net/http"
 
 	"github.com/rumpelsepp/gcat/lib/helper"
-	"github.com/Fraunhofer-AISEC/penlogger"
+	"go.uber.org/zap"
 	"golang.org/x/net/webdav"
 )
 
 type WebDAVServer struct {
 	Root   string
 	Listen string
-	Logger *penlogger.Logger
+	Logger *zap.SugaredLogger
 }
 
 func (s *WebDAVServer) Run() error {
@@ -21,9 +21,9 @@ func (s *WebDAVServer) Run() error {
 		LockSystem: webdav.NewMemLS(),
 		Logger: func(r *http.Request, err error) {
 			if err != nil {
-				s.Logger.LogWarningf("[%s]: %s, %s", r.Method, r.URL, err)
+				s.Logger.Warnf("[%s]: %s, %s", r.Method, r.URL, err)
 			} else {
-				s.Logger.LogInfof("[%s]: %s", r.Method, r.URL)
+				s.Logger.Warnf("[%s]: %s", r.Method, r.URL)
 			}
 		},
 	}

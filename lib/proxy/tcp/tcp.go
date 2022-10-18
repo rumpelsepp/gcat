@@ -18,11 +18,11 @@ func (p *ProxyTCP) Dial() (net.Conn, error) {
 
 func CreateTCPProxy(addr *proxy.ProxyAddr) (*proxy.Proxy, error) {
 	return proxy.CreateProxyFromDialer(
-		 &ProxyTCP{
+		&ProxyTCP{
 			Network: "tcp",
 			Address: addr.Host,
 			Dialer:  net.Dialer{},
-		}) , nil
+		}), nil
 }
 
 type ProxyTCPListener struct {
@@ -68,28 +68,48 @@ func CreateTCPListenProxy(addr *proxy.ProxyAddr) (*proxy.Proxy, error) {
 
 func init() {
 	proxy.Registry.Add(proxy.ProxyEntryPoint{
-		Scheme:    "tcp",
-		Create:    CreateTCPProxy,
-		ShortHelp: "connect to a tcp host:port",
-		Help: `Act as a TCP client.
-
-Arguments:
-
-  * Host: The target to connect to.
-
-Example:
-
-  $ gcat proxy tcp://localhost:1234`,
+		Scheme: "tcp",
+		Create: CreateTCPProxy,
+		Help: proxy.ProxyHelp{
+			Description: "connect to a tcp host:port",
+			Examples: []string{
+				"$ gcat proxy tcp://localhost:1234 -",
+			},
+			Args: []proxy.ProxyHelpArg{
+				{
+					Name:        "Host",
+					Type:        "string",
+					Explanation: "target ip address",
+				},
+				{
+					Name:        "Port",
+					Type:        "int",
+					Explanation: "target port",
+				},
+			},
+		},
 	})
 
 	proxy.Registry.Add(proxy.ProxyEntryPoint{
-		Scheme:    "tcp-listen",
-		Create:    CreateTCPListenProxy,
-		ShortHelp: "tcp listen on host:port",
-		Help: `Act as a TCP server.
-
-Example:
-
-  $ gcat proxy tcp-listen://localhost:1234`,
+		Scheme: "tcp-listen",
+		Create: CreateTCPListenProxy,
+		Help: proxy.ProxyHelp{
+			Description: "tcp listen on host:port",
+			Examples: []string{
+				"$ gcat proxy tcp-listen://localhost:1234 -",
+			},
+			Args: []proxy.ProxyHelpArg{
+				{
+					Name:        "Host",
+					Type:        "string",
+					Explanation: "listening ip address",
+				},
+				{
+					Name:        "Port",
+					Type:        "int",
+					Explanation: "listening port",
+				},
+			},
+		},
 	})
 }

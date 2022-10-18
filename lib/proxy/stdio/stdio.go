@@ -83,17 +83,14 @@ func Create(addr *proxy.ProxyAddr) (*proxy.Proxy, error) {
 
 func init() {
 	proxy.Registry.Add(proxy.ProxyEntryPoint{
-		Scheme:    "stdio",
-		Create:    Create,
-		ShortHelp: "just use stdio; shortcut is `-`",
-		Help: `No arguments.
-
-Example:
-
-  $ gcat proxy tcp-listen://localhost:1234 stdio:
-
-Short form:
-
-  $ gcat proxy tcp-listen://localhost:1234 -`,
+		Scheme: "stdio",
+		Create: Create,
+		Help: proxy.ProxyHelp{
+			Description: "use stdio; shortcut is `-`",
+			Examples: []string{
+				"$ gcat proxy tcp-listen://localhost:1234 stdio:",
+				"$ gcat proxy tcp-listen://localhost:1234 -",
+			},
+		},
 	})
 }

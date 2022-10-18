@@ -83,21 +83,21 @@ func CreateProxy(addr *proxy.ProxyAddr) (*proxy.Proxy, error) {
 
 func init() {
 	proxy.Registry.Add(proxy.ProxyEntryPoint{
-		Scheme:    "exec",
-		Create:    CreateProxy,
-		ShortHelp: "spawn a programm and connect via stdio",
-		Help: `Read and write from/to a command.
-
-Arguments:
-
-  * "cmd": The relevant command.
-
-Example:
-
-  $ gcat proxy 'exec:?cmd=cat -'
-
-Short form:
-
-  $ gcat proxy 'exec:cat -'`,
+		Scheme: "exec",
+		Create: CreateProxy,
+		Help: proxy.ProxyHelp{
+			Description: "spawn a programm and connect via stdio",
+			Examples: []string{
+				"$ gcat proxy 'exec:?cmd=cat -'",
+				"$ gcat proxy 'exec:cat -'",
+			},
+			Args: []proxy.ProxyHelpArg{
+				{
+					Name:        "cmd",
+					Type:        "string",
+					Explanation: "the relevant command",
+				},
+			},
+		},
 	})
 }

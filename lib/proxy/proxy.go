@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/url"
 	"strings"
+	"text/template"
 	"time"
 
 	"golang.org/x/exp/maps"
@@ -172,11 +173,54 @@ func (c *BaseConn) SetWriteDeadline(t time.Time) error {
 	return ErrNotImplemented
 }
 
+type ProxyHelpArg struct {
+	Name        string
+	Type        string
+	Explanation string
+	Default     string
+}
+
+type ProxyHelp struct {
+	Description string
+	Examples    []string
+	Args        []ProxyHelpArg
+}
+
 type ProxyEntryPoint struct {
-	Create    func(addr *ProxyAddr) (*Proxy, error)
-	Scheme    ProxyScheme
-	ShortHelp string
-	Help      string
+	Create func(addr *ProxyAddr) (*Proxy, error)
+	Scheme ProxyScheme
+	Help   ProxyHelp
+}
+
+func (ep *ProxyEntryPoint) String() string {
+	var (
+		builder strings.Builder
+		tpl     = template.Must(template.New("help").Parse(`# Scheme
+
+{{ .Scheme }}
+
+## Description
+
+{{ .Help.Description }}
+{{ if .Help.Args }}
+## Arguments
+{{ range .Help.Args }}
+  * {{ .Name }} ({{ .Type }}){{if .Default}} [default: {{ .Default }}]{{end}}: {{ .Explanation }}{{end}}
+{{ else }}
+no arguments
+{{end}}
+{{ if .Help.Examples }}## Examples
+{{ range .Help.Examples }}
+  * {{ . }}{{end}}
+{{end}}
+`))
+	)
+
+	if err := tpl.Execute(&builder, *ep); err != nil {
+		panic(err)
+	}
+
+	return strings.TrimSpace(builder.String())
 }
 
 type ProxyRegistry struct {

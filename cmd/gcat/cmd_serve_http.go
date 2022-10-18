@@ -17,7 +17,7 @@ var (
 	serveHTTPOpts serveHTTPOptions
 	serveHTTPCmd  = &cobra.Command{
 		Use:   "http",
-		Short: "Spawn a HTTP server",
+		Short: "spawn a HTTP server",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			handler := http.NewServeMux()
 			handler.Handle(serveHTTPOpts.path, http.FileServer(http.Dir(serveHTTPOpts.root)))

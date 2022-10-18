@@ -1,11 +1,11 @@
 package main
 
 import (
-	"os"
+	"fmt"
 
 	"github.com/rumpelsepp/gcat/lib/server/webdav"
-	"github.com/Fraunhofer-AISEC/penlogger"
 	"github.com/spf13/cobra"
+	"go.uber.org/zap"
 )
 
 type serveWebDAVOptions struct {
@@ -17,10 +17,15 @@ var (
 	serveWebDAVOpts serveWebDAVOptions
 	serveWebDAVCmd  = &cobra.Command{
 		Use:   "webdav",
-		Short: "Spawn a WebDAV server",
+		Short: "spawn a WebDAV server",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			logger, err := zap.NewDevelopment()
+			if err != nil {
+				panic(fmt.Sprintf("can't initialize zap logger: %v", err))
+			}
+			defer logger.Sync()
 			srv := webdav.WebDAVServer{
-				Logger: penlogger.NewLogger("webdav", os.Stderr),
+				Logger: logger.Sugar(),
 				Root:   serveWebDAVOpts.root,
 				Listen: serveWebDAVOpts.address,
 			}
@@ -34,6 +39,5 @@ func init() {
 	serveCmd.AddCommand(serveWebDAVCmd)
 	f := serveWebDAVCmd.Flags()
 	f.StringVarP(&serveWebDAVOpts.address, "listen", "l", "127.0.0.1:8000", "listen on this address:port")
-	f.StringVarP(&serveWebDAVOpts.root, "root", "r", "", "directory root; default is CWD")
-
+	f.StringVarP(&serveWebDAVOpts.root, "root", "", "", "directory root; default is CWD")
 }

@@ -17,7 +17,7 @@ var (
 	serveFTPOpts serveFTPOptions
 	serveFTPCmd  = &cobra.Command{
 		Use:   "ftp",
-		Short: "Spawn a FTP server",
+		Short: "spawn a FTP server",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			driver, err := file.NewDriver(serveFTPOpts.root)
 			if err != nil {
