@@ -8,7 +8,13 @@
     let pkgs = nixpkgs.legacyPackages.x86_64-linux;
     in {
       devShell.x86_64-linux = pkgs.mkShell {
-        buildInputs = [ pkgs.go_1_19 pkgs.gnumake pkgs.gopls pkgs.gotools pkgs.efm-langserver ];
+        buildInputs = with pkgs; [
+          go_1_19
+          gnumake
+          gopls
+          gotools
+          efm-langserver
+        ];
       };
       formatter.x86_64-linux = pkgs.nixpkgs-fmt;
     };
