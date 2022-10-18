@@ -12,7 +12,7 @@ require (
 	github.com/pkg/sftp v1.13.5
 	github.com/rumpelsepp/helpers v0.0.0-20220516154105-beca9ef07c0c
 	github.com/spf13/cobra v1.6.0
-	github.com/vishvananda/netlink v1.1.0
+	github.com/vishvananda/netlink v1.2.1-beta.2
 	go.uber.org/zap v1.23.0
 	goftp.io/server/v2 v2.0.0
 	golang.org/x/exp v0.0.0-20221012211006-4de253d81b95
