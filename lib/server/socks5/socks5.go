@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/rumpelsepp/helpers"
+	"github.com/rumpelsepp/gcat/lib/helper"
 	"go.uber.org/zap"
 )
 
@@ -380,7 +380,7 @@ func (s *Server) serveClient(conn io.ReadWriteCloser) error {
 			upstreamConn.Close()
 			return err
 		}
-		if _, _, err = helpers.BidirectCopy(upstreamConn, conn); err != nil {
+		if _, _, err = helper.BidirectCopy(upstreamConn, conn); err != nil {
 			s.Logger.Debug(err)
 			return err
 		}

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"strconv"
 	"strings"
 	"text/template"
 	"time"
@@ -41,6 +42,7 @@ type ProxyDialer interface {
 }
 
 type ProxyListener interface {
+	// TODO: Add Close() method.
 	IsListening() bool
 	Listen() error
 	Accept() (net.Conn, error)
@@ -132,6 +134,34 @@ func (a *ProxyAddr) Network() string {
 	return string(a.ProxyScheme())
 }
 
+func (a *ProxyAddr) GetStringOption(key, fallback string) string {
+	qs := a.URL.Query()
+
+	if qs.Has(key) {
+		return qs.Get(key)
+	}
+	return fallback
+}
+
+func (a *ProxyAddr) GetBoolOption(key string, fallback bool) (bool, error) {
+	qs := a.URL.Query()
+
+	if qs.Has(key) {
+		return strconv.ParseBool(qs.Get(key))
+	}
+	return fallback, nil
+}
+
+func (a *ProxyAddr) GetIntOption(key string, base int, fallback int) (int, error) {
+	qs := a.URL.Query()
+
+	if qs.Has(key) {
+		v, err := strconv.ParseInt(qs.Get(key), 32, base)
+		return int(v), err
+	}
+	return fallback, nil
+}
+
 func (a *ProxyAddr) String() string {
 	return a.URL.String()
 }
@@ -205,13 +235,13 @@ func (ep *ProxyEntryPoint) String() string {
 {{ if .Help.Args }}
 ## Arguments
 {{ range .Help.Args }}
-  * {{ .Name }} ({{ .Type }}){{if .Default}} [default: {{ .Default }}]{{end}}: {{ .Explanation }}{{end}}
+  * {{ .Name }} ({{ .Type }}){{if .Default}} [default: "{{ .Default }}"]{{end}}: {{ .Explanation }}{{end}}
 {{ else }}
 no arguments
 {{end}}
 {{ if .Help.Examples }}## Examples
 {{ range .Help.Examples }}
-  * {{ . }}{{end}}
+  {{ . }}{{end}}
 {{end}}
 `))
 	)

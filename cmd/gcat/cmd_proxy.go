@@ -2,12 +2,15 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"net"
-	"sync"
+	"os"
+	"os/signal"
+	"syscall"
 
+	"github.com/rumpelsepp/gcat/lib/helper"
 	"github.com/rumpelsepp/gcat/lib/proxy"
 	_ "github.com/rumpelsepp/gcat/lib/proxy/exec"
+	_ "github.com/rumpelsepp/gcat/lib/proxy/quic"
 	_ "github.com/rumpelsepp/gcat/lib/proxy/stdio"
 	_ "github.com/rumpelsepp/gcat/lib/proxy/tcp"
 	_ "github.com/rumpelsepp/gcat/lib/proxy/tun"
@@ -15,72 +18,69 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func bidirectCopy(left net.Conn, right net.Conn) (int, int, error) {
-	var (
-		n1   = 0
-		n2   = 0
-		err  error
-		err1 error
-		err2 error
-		wg   sync.WaitGroup
-	)
-
-	wg.Add(2)
-
-	go func() {
-		if n, err := io.Copy(right, left); err != nil {
-			err1 = err
-		} else {
-			n1 = int(n)
-		}
-
-		right.Close()
-		wg.Done()
-	}()
-
-	go func() {
-		if n, err := io.Copy(left, right); err != nil {
-			err2 = err
-		} else {
-			n2 = int(n)
-		}
-
-		left.Close()
-		wg.Done()
-	}()
-
-	wg.Wait()
-
-	if err1 != nil && err2 != nil {
-		err = fmt.Errorf("both copier failed; left: %s; right: %s", err1, err2)
-	} else {
-		if err1 != nil {
-			err = err1
-		} else if err2 != nil {
-			err = err2
-		}
-	}
-
-	return n1, n2, err
+type mainLoop struct {
+	proxyLeft  *proxy.Proxy
+	proxyRight *proxy.Proxy
+	connLeft   net.Conn
+	connRight  net.Conn
 }
 
-func mainLoop(left *proxy.Proxy, right *proxy.Proxy) error {
-	connLeft, err := left.Connect()
+func CreateLoop(addrLeft, addrRight string) (*mainLoop, error) {
+	addrLeftParsed, err := proxy.ParseAddr(addrLeft)
+	if err != nil {
+		return nil, err
+	}
+
+	addrRightParsed, err := proxy.ParseAddr(addrRight)
+	if err != nil {
+		return nil, err
+	}
+
+	proxyLeft, err := proxy.Registry.Create(addrLeftParsed)
+	if err != nil {
+		return nil, err
+	}
+
+	proxyRight, err := proxy.Registry.Create(addrRightParsed)
+	if err != nil {
+		return nil, err
+	}
+
+	return &mainLoop{
+		proxyLeft:  proxyLeft,
+		proxyRight: proxyRight,
+	}, nil
+}
+
+func (l *mainLoop) Run() error {
+	connLeft, err := l.proxyLeft.Connect()
 	if err != nil {
 		return err
 	}
+	l.connLeft = connLeft
 
-	connRight, err := right.Connect()
+	connRight, err := l.proxyRight.Connect()
 	if err != nil {
 		return err
 	}
+	l.connRight = connRight
 
-	_, _, err = bidirectCopy(connLeft, connRight)
+	_, _, err = helper.BidirectCopy(l.connLeft, l.connRight)
 	if err != nil {
 		return err
 	}
-
 	return nil
+}
+
+func (l *mainLoop) Abort() {
+	if l.connLeft != nil {
+		l.connLeft.Close()
+		l.connLeft = nil
+	}
+	if l.connRight != nil {
+		l.connRight.Close()
+		l.connRight = nil
+	}
 }
 
 type proxyOptions struct {
@@ -89,7 +89,7 @@ type proxyOptions struct {
 
 var (
 	proxyOpts proxyOptions
-	proxyCmd = &cobra.Command{
+	proxyCmd  = &cobra.Command{
 		Use:   "proxy [flags] URL1 URL2",
 		Short: "Act as a fancy socat like proxy tool",
 		Long: `The proxy command needs two arguments which specify the data pipeline.
@@ -112,7 +112,7 @@ command.
   SSH Tunnel through Websocket (https://rumpelsepp.org/blog/ssh-through-websocket/):
 
       $ ssh -o 'ProxyCommand=gcat proxy wss://example.org/ssh/' user@example.org`,
-		RunE:  func(cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) != 2 {
 				return fmt.Errorf("provide two urls")
 			}
@@ -120,36 +120,36 @@ command.
 			var (
 				addrLeftRaw  = args[0]
 				addrRightRaw = args[1]
+				done         = make(chan error)
 			)
 
-			addrLeft, err := proxy.ParseAddr(addrLeftRaw)
+			loop, err := CreateLoop(addrLeftRaw, addrRightRaw)
 			if err != nil {
 				return err
 			}
 
-			addrRight, err := proxy.ParseAddr(addrRightRaw)
-			if err != nil {
-				return err
-			}
-
-			proxyLeft, err := proxy.Registry.Create(addrLeft)
-			if err != nil {
-				return err
-			}
-
-			proxyRight, err := proxy.Registry.Create(addrRight)
-			if err != nil {
-				return err
-			}
-
-			if proxyOpts.loop {
-				for {
-					if err := mainLoop(proxyLeft, proxyRight); err != nil {
-						return err
+			go func() {
+				if proxyOpts.loop {
+					for {
+						loop.Run()
+						loop.Abort()
 					}
 				}
+				done <- loop.Run()
+			}()
+
+			c := make(chan os.Signal, 1)
+			signal.Notify(c, os.Interrupt)
+
+			select {
+			case <-c:
+				loop.Abort()
+				os.Exit(128 + int(syscall.SIGINT))
+			case err := <-done:
+				return err
 			}
-			return mainLoop(proxyLeft, proxyRight)
+
+			return nil
 		},
 	}
 )

@@ -3,6 +3,7 @@ package helper
 import (
 	"crypto/ed25519"
 	"crypto/rand"
+	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
@@ -50,6 +51,19 @@ func GenCertificate(priv ed25519.PrivateKey) ([]byte, []byte, error) {
 	privPEM := pem.EncodeToMemory(&pem.Block{Type: "ED25519 PRIVATE KEY", Bytes: privDER})
 
 	return privPEM, certPEM, nil
+}
+
+func GenTLSCertificate() (tls.Certificate, error) {
+	_, priv, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		return tls.Certificate{}, fmt.Errorf("generate private key: %w", err)
+	}
+	keyPEM, certPEM, err := GenCertificate(priv)
+	if err != nil {
+		return tls.Certificate{}, err
+	}
+
+	return tls.X509KeyPair(certPEM, keyPEM)
 }
 
 func GenKeypairFS() (string, string, error) {

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"time"
 
@@ -77,8 +78,27 @@ func (w *stdioWrapper) Close() error {
 	return nil
 }
 
+type stdioProxy struct {
+	stdioWrapper
+}
+
+func NewStdioDialer() *stdioProxy {
+	return &stdioProxy{
+		stdioWrapper: *newStdioWrapper(),
+	}
+}
+
+func (p *stdioProxy) Dial() (net.Conn, error) {
+	if p.stdioWrapper.closed {
+		if err := p.stdioWrapper.Reopen(); err != nil {
+			return nil, err
+		}
+	}
+	return &p.stdioWrapper, nil
+}
+
 func Create(addr *proxy.ProxyAddr) (*proxy.Proxy, error) {
-	return proxy.CreateProxyFromConn(newStdioWrapper()), nil
+	return proxy.CreateProxyFromDialer(NewStdioDialer()), nil
 }
 
 func init() {

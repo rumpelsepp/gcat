@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/rumpelsepp/gcat/lib/proxy"
 	"github.com/jedib0t/go-pretty/v6/table"
+	"github.com/rumpelsepp/gcat/lib/proxy"
 	"github.com/spf13/cobra"
 )
 
@@ -36,7 +36,6 @@ var (
 				cmd.Println(p.String())
 			default:
 				cmd.Usage()
-				return nil
 			}
 
 			return nil
