@@ -1,9 +1,11 @@
 package main
 
 import (
+	"os"
+
 	"github.com/rumpelsepp/gcat/lib/server/socks5"
 	"github.com/spf13/cobra"
-	"go.uber.org/zap"
+	"golang.org/x/exp/slog"
 )
 
 type serveSOCKS5Options struct {
@@ -23,14 +25,9 @@ var (
 				auth = socks5.AuthUsernamePassword
 			}
 
-			logger, err := zap.NewDevelopment()
-			if err != nil {
-				panic(err)
-			}
-
 			srv := socks5.Server{
 				Listen:   serveSOCKS5Opts.listen,
-				Logger:   logger.Sugar(),
+				Logger:   slog.New(slog.NewTextHandler(os.Stderr)),
 				Auth:     auth,
 				Username: serveSOCKS5Opts.username,
 				Password: serveSOCKS5Opts.password,

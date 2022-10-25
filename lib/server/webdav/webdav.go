@@ -2,17 +2,18 @@ package webdav
 
 import (
 	"crypto/tls"
+	"fmt"
 	"net/http"
 
 	"github.com/rumpelsepp/gcat/lib/helper"
-	"go.uber.org/zap"
+	"golang.org/x/exp/slog"
 	"golang.org/x/net/webdav"
 )
 
 type WebDAVServer struct {
 	Root   string
 	Listen string
-	Logger *zap.SugaredLogger
+	Logger slog.Logger
 }
 
 func (s *WebDAVServer) Run() error {
@@ -21,9 +22,9 @@ func (s *WebDAVServer) Run() error {
 		LockSystem: webdav.NewMemLS(),
 		Logger: func(r *http.Request, err error) {
 			if err != nil {
-				s.Logger.Warnf("[%s]: %s, %s", r.Method, r.URL, err)
+				s.Logger.Warn(fmt.Sprintf("[%s]: %s, %s", r.Method, r.URL, err))
 			} else {
-				s.Logger.Warnf("[%s]: %s", r.Method, r.URL)
+				s.Logger.Warn(fmt.Sprintf("[%s]: %s", r.Method, r.URL))
 			}
 		},
 	}

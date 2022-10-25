@@ -1,11 +1,11 @@
 package main
 
 import (
-	"fmt"
+	"os"
 
 	"github.com/rumpelsepp/gcat/lib/server/webdav"
 	"github.com/spf13/cobra"
-	"go.uber.org/zap"
+	"golang.org/x/exp/slog"
 )
 
 type serveWebDAVOptions struct {
@@ -19,13 +19,8 @@ var (
 		Use:   "webdav",
 		Short: "spawn a WebDAV server",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			logger, err := zap.NewDevelopment()
-			if err != nil {
-				panic(fmt.Sprintf("can't initialize zap logger: %v", err))
-			}
-			defer logger.Sync()
 			srv := webdav.WebDAVServer{
-				Logger: logger.Sugar(),
+				Logger: slog.New(slog.NewTextHandler(os.Stderr)),
 				Root:   serveWebDAVOpts.root,
 				Listen: serveWebDAVOpts.address,
 			}

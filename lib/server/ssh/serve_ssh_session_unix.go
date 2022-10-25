@@ -42,7 +42,7 @@ func (srv *SSHServer) createPty(s ssh.Session, shell string) {
 	}
 	f, err := pty.Start(cmd)
 	if err != nil {
-		srv.logger.Fatalf("Could not start shell: %s", err)
+		srv.logger.Error("Could not start shell", err)
 		os.Exit(1)
 	}
 	go func() {
@@ -67,16 +67,16 @@ func (srv *SSHServer) createPty(s ssh.Session, shell string) {
 	select {
 	case err := <-done:
 		if err != nil {
-			srv.logger.Errorf("Session ended with error: %s", err)
+			srv.logger.Error("Session ended with error", err)
 			s.Exit(255)
 			return
 		}
-		srv.logger.Infof("Session ended normally")
+		srv.logger.Info("Session ended normally")
 		s.Exit(cmd.ProcessState.ExitCode())
 		return
 
 	case <-s.Context().Done():
-		srv.logger.Infof("Session terminated: %s", s.Context().Err())
+		srv.logger.Info(fmt.Sprintf("Session terminated: %s", s.Context().Err()))
 		return
 	}
 }

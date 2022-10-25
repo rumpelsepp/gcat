@@ -11,11 +11,11 @@ import (
 
 	"github.com/gliderlabs/ssh"
 	"github.com/pkg/sftp"
-	"go.uber.org/zap"
+	"golang.org/x/exp/slog"
 )
 
 type SSHServer struct {
-	logger         *zap.SugaredLogger
+	logger         slog.Logger
 	HostKey        string
 	AuthorizedKeys string
 	Root           string
@@ -26,34 +26,30 @@ type SSHServer struct {
 }
 
 func NewSSHServer() *SSHServer {
-	logger, err := zap.NewDevelopment()
-	if err != nil {
-		panic(err)
-	}
 	return &SSHServer{
-		logger: logger.Sugar(),
+		logger: slog.New(slog.NewTextHandler(os.Stderr)),
 	}
 }
 
 func (srv *SSHServer) sftpHandler(s ssh.Session) {
 	server, err := sftp.NewServer(s)
 	if err != nil {
-		srv.logger.Errorf("SFTP server init error: %s\n", err)
+		srv.logger.Error("SFTP server init error: %s\n", err)
 		return
 	}
 
-	srv.logger.Debugf("New SFTP connection from %s", s.RemoteAddr().String())
+	srv.logger.Debug(fmt.Sprintf("New SFTP connection from %s", s.RemoteAddr().String()))
 	if err := server.Serve(); err == io.EOF {
 		server.Close()
 		srv.logger.Debug("SFTP connection closed by client")
 	} else if err != nil {
-		srv.logger.Errorf("SFTP server exited with error: %s", err)
+		srv.logger.Error("SFTP server exited with error: %s", err)
 	}
 }
 
 func (srv *SSHServer) makeSSHSessionHandler(shell string) ssh.Handler {
 	return func(s ssh.Session) {
-		srv.logger.Infof("New login from %s@%s", s.User(), s.RemoteAddr().String())
+		srv.logger.Info("New login from %s@%s", s.User(), s.RemoteAddr().String())
 		_, _, isPty := s.Pty()
 
 		switch {
@@ -63,7 +59,7 @@ func (srv *SSHServer) makeSSHSessionHandler(shell string) ssh.Handler {
 			srv.createPty(s, shell)
 
 		case len(s.Command()) > 0:
-			srv.logger.Infof("No PTY requested, executing command: '%s'", s.RawCommand())
+			srv.logger.Info("No PTY requested, executing command: '%s'", s.RawCommand())
 
 			cmd := exec.CommandContext(s.Context(), s.Command()[0], s.Command()[1:]...)
 
@@ -74,7 +70,7 @@ func (srv *SSHServer) makeSSHSessionHandler(shell string) ssh.Handler {
 			} else {
 				go func() {
 					if _, err := io.Copy(stdin, s); err != nil {
-						srv.logger.Errorf("Error while copying input from %s to stdin: %s", s.RemoteAddr().String(), err)
+						srv.logger.Error(fmt.Sprintf("Error while copying input from %s to stdin: %s", s.RemoteAddr().String()), err)
 					}
 					s.Close()
 				}()
@@ -83,9 +79,9 @@ func (srv *SSHServer) makeSSHSessionHandler(shell string) ssh.Handler {
 			cmd.Stdout = s
 			cmd.Stderr = s
 
-			logError := func(f string, v ...any) {
-				srv.logger.Errorf(f, v...)
-				fmt.Fprintf(s, f, v...)
+			logError := func(str string, err error) {
+				srv.logger.Error(str, err)
+				fmt.Fprintf(s, "%s: %s", str, err)
 			}
 
 			done := make(chan error, 1)
@@ -103,12 +99,12 @@ func (srv *SSHServer) makeSSHSessionHandler(shell string) ssh.Handler {
 				return
 
 			case <-s.Context().Done():
-				srv.logger.Infof("Session terminated: %s", s.Context().Err())
+				srv.logger.Info("Session terminated: %s", s.Context().Err())
 				return
 			}
 
 		default:
-			srv.logger.Error("No PTY requested, no command supplied")
+			srv.logger.Error("No PTY requested, no command supplied", nil)
 		}
 	}
 }
@@ -121,18 +117,18 @@ func (srv *SSHServer) Run() error {
 			Addr:    srv.Address,
 			PasswordHandler: func(ctx ssh.Context, pass string) bool {
 				if pass == srv.Passwd {
-					srv.logger.Infof("Successful authentication with password from %s@%s", ctx.User(), ctx.RemoteAddr().String())
+					srv.logger.Info(fmt.Sprintf("Successful authentication with password from %s@%s", ctx.User(), ctx.RemoteAddr().String()))
 					return true
 				}
-				srv.logger.Warnf("Invalid password from %s@%s", ctx.User(), ctx.RemoteAddr().String())
+				srv.logger.Warn("Invalid password from %s@%s", ctx.User(), ctx.RemoteAddr().String())
 				return false
 			},
 			LocalPortForwardingCallback: func(ctx ssh.Context, dhost string, dport uint32) bool {
-				srv.logger.Infof("Accepted forward to %s:%d", dhost, dport)
+				srv.logger.Info("Accepted forward to %s:%d", dhost, dport)
 				return true
 			},
 			ReversePortForwardingCallback: func(ctx ssh.Context, host string, port uint32) bool {
-				srv.logger.Infof("Attempt to bind at %s:%d granted", host, port)
+				srv.logger.Info("Attempt to bind at %s:%d granted", host, port)
 				return true
 			},
 			ChannelHandlers: map[string]ssh.ChannelHandler{
@@ -177,11 +173,11 @@ func (srv *SSHServer) Run() error {
 		server.PublicKeyHandler = func(ctx ssh.Context, key ssh.PublicKey) bool {
 			for _, authKey := range keys {
 				if bytes.Equal(key.Marshal(), authKey.Marshal()) {
-					srv.logger.Infof("Successful authentication with ssh key from %s@%s", ctx.User(), ctx.RemoteAddr().String())
+					srv.logger.Info("Successful authentication with ssh key from %s@%s", ctx.User(), ctx.RemoteAddr().String())
 					return true
 				}
 			}
-			srv.logger.Infof("Invalid ssh key from %s@%s", ctx.User(), ctx.RemoteAddr().String())
+			srv.logger.Info("Invalid ssh key from %s@%s", ctx.User(), ctx.RemoteAddr().String())
 			return false
 		}
 	}

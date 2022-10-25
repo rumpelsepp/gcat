@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/rumpelsepp/gcat/lib/helper"
-	"go.uber.org/zap"
+	"golang.org/x/exp/slog"
 )
 
 const (
@@ -99,7 +99,7 @@ type UsernamePasswordResponse struct {
 
 type Server struct {
 	Listen   string
-	Logger   *zap.SugaredLogger
+	Logger   slog.Logger
 	Auth     int
 	Username string
 	Password string
@@ -294,12 +294,10 @@ func (s *Server) serveClient(conn io.ReadWriteCloser) error {
 		if err == ErrNoAcceptableMethods {
 			s.sendMethodSelection(conn, AuthNoAcceptableMethods)
 		}
-		s.Logger.Info(err)
 		conn.Close()
 		return err
 	}
 	if err := s.sendMethodSelection(conn, auth); err != nil {
-		s.Logger.Info(err)
 		conn.Close()
 		return err
 	}
@@ -308,7 +306,6 @@ func (s *Server) serveClient(conn io.ReadWriteCloser) error {
 		case AuthUsernamePassword:
 			req, err := s.readUsernamePasswordReq(conn)
 			if err != nil {
-				s.Logger.Info(err)
 				conn.Close()
 				return err
 			}
@@ -318,7 +315,6 @@ func (s *Server) serveClient(conn io.ReadWriteCloser) error {
 				return err
 			}
 			if err := s.sendUsernamePasswordReply(conn, 0); err != nil {
-				s.Logger.Info(err)
 				conn.Close()
 				return err
 			}
@@ -329,7 +325,6 @@ func (s *Server) serveClient(conn io.ReadWriteCloser) error {
 	}
 	req, err := s.readRequest(conn)
 	if err != nil {
-		s.Logger.Info(err)
 		conn.Close()
 		return err
 	}
@@ -356,32 +351,26 @@ func (s *Server) serveClient(conn io.ReadWriteCloser) error {
 		}
 		upstreamConn, err := net.DialTimeout("tcp", host, 2*time.Second)
 		if err != nil {
-			s.Logger.Info(err)
 			if errors.Is(err, syscall.ECONNREFUSED) {
 				if err := s.sendError(conn, RepConnectionRefused); err != nil {
-					s.Logger.Info(err)
 					return err
 				}
 			} else if errors.Is(err, syscall.EHOSTUNREACH) {
 				if err := s.sendError(conn, RepHostUnreachable); err != nil {
-					s.Logger.Info(err)
 					return err
 				}
 			} else if errors.Is(err, syscall.ENETUNREACH) {
 				if err := s.sendError(conn, RepNetworkUnreachable); err != nil {
-					s.Logger.Info(err)
 					return err
 				}
 			}
 			return err
 		}
 		if err := s.sendReply(conn, RepSucceeded, req.ATYP, addr, req.DSTPort); err != nil {
-			s.Logger.Info(err)
 			upstreamConn.Close()
 			return err
 		}
 		if _, _, err = helper.BidirectCopy(upstreamConn, conn); err != nil {
-			s.Logger.Debug(err)
 			return err
 		}
 	}
@@ -397,7 +386,7 @@ func (s *Server) Serve() error {
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
-			s.Logger.Info(err)
+			s.Logger.Info(err.Error())
 			continue
 		}
 		go s.serveClient(conn)
