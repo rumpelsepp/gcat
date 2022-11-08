@@ -1,33 +1,22 @@
 package tcp
 
 import (
+	"fmt"
 	"net"
 
 	"github.com/rumpelsepp/gcat/lib/proxy"
 )
 
 type ProxyTCP struct {
-	Network string
-	Address string
-	Dialer  net.Dialer
 }
 
-func (p *ProxyTCP) Dial() (net.Conn, error) {
-	return p.Dialer.Dial(p.Network, p.Address)
-}
-
-func CreateTCPProxy(addr *proxy.ProxyAddr) (*proxy.Proxy, error) {
-	return proxy.CreateProxyFromDialer(
-		&ProxyTCP{
-			Network: "tcp",
-			Address: addr.Host,
-			Dialer:  net.Dialer{},
-		}), nil
+func (p *ProxyTCP) Dial(prox *proxy.Proxy) (net.Conn, error) {
+	a := net.JoinHostPort(prox.GetStringOption("Hostname"), prox.GetStringOption("Port"))
+	fmt.Println(a)
+	return net.Dial("tcp", a)
 }
 
 type ProxyTCPListener struct {
-	Network  string
-	Address  string
 	listener net.Listener
 }
 
@@ -38,12 +27,12 @@ func (p *ProxyTCPListener) IsListening() bool {
 	return true
 }
 
-func (p *ProxyTCPListener) Listen() error {
+func (p *ProxyTCPListener) Listen(prox *proxy.Proxy) error {
 	if p.IsListening() {
 		return proxy.ErrProxyBusy
 	}
 
-	ln, err := net.Listen(p.Network, p.Address)
+	ln, err := net.Listen("tcp", net.JoinHostPort(prox.GetStringOption("Hostname"), prox.GetStringOption("Port")))
 	if err != nil {
 		return err
 	}
@@ -58,57 +47,53 @@ func (p *ProxyTCPListener) Accept() (net.Conn, error) {
 	return p.listener.Accept()
 }
 
-func CreateTCPListenProxy(addr *proxy.ProxyAddr) (*proxy.Proxy, error) {
-	return proxy.CreateProxyFromListener(
-		&ProxyTCPListener{
-			Network: "tcp",
-			Address: addr.Host,
-		}), nil
+func (p *ProxyTCPListener) Close() error {
+	if p.IsListening() {
+		return p.listener.Close()
+	}
+	return nil
 }
 
 func init() {
-	proxy.Registry.Add(proxy.ProxyEntryPoint{
-		Scheme: "tcp",
-		Create: CreateTCPProxy,
-		Help: proxy.ProxyHelp{
-			Description: "connect to a tcp host:port",
-			Examples: []string{
-				"$ gcat proxy tcp://localhost:1234 -",
+	proxy.Registry.Add(proxy.Proxy{
+		Scheme:           "tcp",
+		Description:      "connect to a tcp host:port",
+		SupportsMultiple: true,
+		Examples: []string{
+			"$ gcat proxy tcp://localhost:1234 -",
+		},
+		Dialer: &ProxyTCP{},
+		StringOptions: []proxy.ProxyOption[string]{
+			{
+				Name:        "Hostname",
+				Description: "target ip address with port",
+				Default:     "localhost",
 			},
-			Args: []proxy.ProxyHelpArg{
-				{
-					Name:        "Host",
-					Type:        "string",
-					Explanation: "target ip address",
-				},
-				{
-					Name:        "Port",
-					Type:        "int",
-					Explanation: "target port",
-				},
+			{
+				Name:        "Port",
+				Description: "tcp connect port",
+				Default:     "1234",
 			},
 		},
 	})
-
-	proxy.Registry.Add(proxy.ProxyEntryPoint{
-		Scheme: "tcp-listen",
-		Create: CreateTCPListenProxy,
-		Help: proxy.ProxyHelp{
-			Description: "tcp listen on host:port",
-			Examples: []string{
-				"$ gcat proxy tcp-listen://localhost:1234 -",
+	proxy.Registry.Add(proxy.Proxy{
+		Scheme:           "tcp-listen",
+		Description:      "tcp listen on host:port",
+		SupportsMultiple: true,
+		Examples: []string{
+			"$ gcat proxy tcp-listen://localhost:1234 -",
+		},
+		Listener: &ProxyTCPListener{},
+		StringOptions: []proxy.ProxyOption[string]{
+			{
+				Name:        "Hostname",
+				Description: "listening ip address",
+				Default:     "localhost",
 			},
-			Args: []proxy.ProxyHelpArg{
-				{
-					Name:        "Host",
-					Type:        "string",
-					Explanation: "listening ip address",
-				},
-				{
-					Name:        "Port",
-					Type:        "int",
-					Explanation: "listening port",
-				},
+			{
+				Name:        "Port",
+				Description: "tcp listening port",
+				Default:     "1234",
 			},
 		},
 	})

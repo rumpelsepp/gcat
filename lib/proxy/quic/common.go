@@ -1,7 +1,10 @@
 package quic
 
 import (
+	"bytes"
 	"crypto/tls"
+	"crypto/x509"
+	"fmt"
 	"io"
 	"net"
 	"os"
@@ -14,7 +17,7 @@ import (
 
 var helpArgs = []proxy.ProxyHelpArg{
 	{
-		Name:        "Host",
+		Name:        "Hostname",
 		Type:        "string",
 		Explanation: "target ip address",
 	},
@@ -55,16 +58,52 @@ var helpArgs = []proxy.ProxyHelpArg{
 		Type:        "int",
 		Explanation: "keepalive interval in seconds",
 	},
+	{
+		Name:        "fingerprint",
+		Type:        "string",
+		Explanation: "pin to this publickey fingerprint (SHA256)",
+	},
+}
+
+func fingerprint(cert []byte) ([]byte, error) {
+	parsedCert, err := x509.ParseCertificate(cert)
+	if err != nil {
+		return nil, err
+	}
+
+}
+
+func makeVerifier(allowed []*Fingerprint) {
+	return func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
+		for _, cert := range rawCerts {
+			remoteFP, err := fingerprint(cert)
+			if err != nil {
+				return err
+			}
+
+			for _, fp := range allowed {
+				if bytes.Equal(remoteFP, fp) {
+					return nil
+				}
+			}
+			if database != nil {
+				if database.IsTrusted(remoteFP) {
+					return nil
+				}
+			}
+		}
+		return fmt.Errorf("peer is not trusted")
+	}
 }
 
 func parseOptions(addr *proxy.ProxyAddr) (*tls.Config, *quic.Config, error) {
 	var (
-		err                error
-		insecureSkipVerify = true
-		nextProto          = addr.GetStringOption("next_proto", "quic")
-		keyPath            = addr.GetStringOption("key_path", "")
-		certPath           = addr.GetStringOption("cert_path", "")
-		keylogFile         = addr.GetStringOption("keylog_file", "")
+		err         error
+		nextProto   = addr.GetStringOption("next_proto", "quic")
+		keyPath     = addr.GetStringOption("key_path", "")
+		certPath    = addr.GetStringOption("cert_path", "")
+		keylogFile  = addr.GetStringOption("keylog_file", "")
+		fingerprint = addr.GetStringOption("fingerprint", "")
 	)
 
 	enableDatagrams, err := addr.GetBoolOption("use_datagrams", false)
@@ -73,6 +112,11 @@ func parseOptions(addr *proxy.ProxyAddr) (*tls.Config, *quic.Config, error) {
 	}
 
 	keepAlivePeriod, err := addr.GetIntOption("keep_alive_period", 10, 10)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	insecureSkipVerify, err := addr.GetBoolOption("skip_verify", false)
 	if err != nil {
 		return nil, nil, err
 	}

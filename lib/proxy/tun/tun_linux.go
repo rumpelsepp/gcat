@@ -11,15 +11,15 @@ import (
 	"github.com/vishvananda/netlink"
 )
 
-type NativeTUN struct {
+type nativeTUN struct {
 	*os.File
 	netlink.Link
 	baseConn proxy.BaseConn
 }
 
-func CreateNativeTun(addr *proxy.ProxyAddr) (*NativeTUN, error) {
+func createNativeTUN(dev string) (*nativeTUN, error) {
 	la := netlink.NewLinkAttrs()
-	la.Name = addr.Query().Get("dev")
+	la.Name = dev
 
 	u, err := user.Current()
 	if err != nil {
@@ -57,15 +57,12 @@ func CreateNativeTun(addr *proxy.ProxyAddr) (*NativeTUN, error) {
 	if len(link.Fds) != 1 {
 		return nil, fmt.Errorf("BUG: got too much tuntap fds")
 	}
-	return &NativeTUN{
-		baseConn: proxy.BaseConn{
-			LocalAddress: addr,
-		},
+	return &nativeTUN{
 		Link: iface,
 		File: link.Fds[0]}, nil
 }
 
-func (tun *NativeTUN) Close() error {
+func (tun *nativeTUN) Close() error {
 	if err := tun.File.Close(); err != nil {
 		return err
 	}
@@ -75,31 +72,31 @@ func (tun *NativeTUN) Close() error {
 	return netlink.LinkDel(tun.Link)
 }
 
-func (tun *NativeTUN) LocalAddr() net.Addr {
+func (tun *nativeTUN) LocalAddr() net.Addr {
 	return tun.baseConn.LocalAddr()
 }
 
-func (tun *NativeTUN) RemoteAddr() net.Addr {
+func (tun *nativeTUN) RemoteAddr() net.Addr {
 	return tun.baseConn.RemoteAddr()
 }
 
-func (tun *NativeTUN) Index() int {
+func (tun *nativeTUN) Index() int {
 	return tun.Link.Attrs().Index
 }
 
-func (tun *NativeTUN) SetMTU(mtu int) error {
+func (tun *nativeTUN) SetMTU(mtu int) error {
 	return netlink.LinkSetMTU(tun.Link, mtu)
 }
 
-func (tun *NativeTUN) MTU() int {
+func (tun *nativeTUN) MTU() int {
 	return tun.Link.Attrs().MTU
 }
 
-func (tun *NativeTUN) SetUP() error {
+func (tun *nativeTUN) SetUP() error {
 	return netlink.LinkSetUp(tun.Link)
 }
 
-func (tun *NativeTUN) AddAddressCIDR(cidrAddr string) error {
+func (tun *nativeTUN) AddAddressCIDR(cidrAddr string) error {
 	addr, err := netlink.ParseAddr(cidrAddr)
 	if err != nil {
 		return err

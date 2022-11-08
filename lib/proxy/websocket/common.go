@@ -4,15 +4,17 @@ import (
 	"github.com/rumpelsepp/gcat/lib/proxy"
 )
 
-var helpArgs = []proxy.ProxyHelpArg{
+var options = []proxy.ProxyOption[string]{
 	{
-		Name:        "Host",
-		Type:        "string",
-		Explanation: "target ip address",
+		Name:        "Hostname",
+		Description: "target ip address",
 	},
 	{
 		Name:        "Port",
-		Type:        "int",
-		Explanation: "target port",
+		Description: "target port",
+	},
+	{
+		Name:        "Path",
+		Description: "http path",
 	},
 }

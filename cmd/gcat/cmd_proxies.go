@@ -11,7 +11,7 @@ func printRegistry(cmd *cobra.Command) error {
 	t.SetOutputMirror(cmd.OutOrStdout())
 	t.AppendHeader(table.Row{"Scheme", "Description"})
 	for _, v := range proxy.Registry.Values() {
-		t.AppendRow(table.Row{v.Scheme, v.Help.Description})
+		t.AppendRow(table.Row{v.Scheme, v.Description})
 	}
 	t.SortBy([]table.SortBy{{Name: "Scheme"}})
 	t.Render()
@@ -33,7 +33,7 @@ var (
 					return err
 				}
 
-				cmd.Println(p.String())
+				cmd.Println(p.Help())
 			default:
 				cmd.Usage()
 			}

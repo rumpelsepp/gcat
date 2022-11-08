@@ -53,7 +53,7 @@ func CreateQUICProxy(addr *proxy.ProxyAddr) (*proxy.Proxy, error) {
 }
 
 func init() {
-	proxy.Registry.Add(proxy.ProxyEntryPoint{
+	proxy.Registry.Add(proxy.Proxy{
 		Scheme: "quic",
 		Create: CreateQUICProxy,
 		Help: proxy.ProxyHelp{

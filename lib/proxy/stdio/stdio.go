@@ -88,7 +88,7 @@ func NewStdioDialer() *stdioProxy {
 	}
 }
 
-func (p *stdioProxy) Dial() (net.Conn, error) {
+func (p *stdioProxy) Dial(prox *proxy.Proxy) (net.Conn, error) {
 	if p.stdioWrapper.closed {
 		if err := p.stdioWrapper.Reopen(); err != nil {
 			return nil, err
@@ -97,20 +97,14 @@ func (p *stdioProxy) Dial() (net.Conn, error) {
 	return &p.stdioWrapper, nil
 }
 
-func Create(addr *proxy.ProxyAddr) (*proxy.Proxy, error) {
-	return proxy.CreateProxyFromDialer(NewStdioDialer()), nil
-}
-
 func init() {
-	proxy.Registry.Add(proxy.ProxyEntryPoint{
-		Scheme: "stdio",
-		Create: Create,
-		Help: proxy.ProxyHelp{
-			Description: "use stdio; shortcut is `-`",
-			Examples: []string{
-				"$ gcat proxy tcp-listen://localhost:1234 stdio:",
-				"$ gcat proxy tcp-listen://localhost:1234 -",
-			},
+	proxy.Registry.Add(proxy.Proxy{
+		Scheme:      "stdio",
+		Description: "use stdio; shortcut is `-`",
+		Dialer:      NewStdioDialer(),
+		Examples: []string{
+			"$ gcat proxy tcp-listen://localhost:1234 stdio:",
+			"$ gcat proxy tcp-listen://localhost:1234 -",
 		},
 	})
 }

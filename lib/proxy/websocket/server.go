@@ -30,25 +30,14 @@ func (w *wsConnWrapper) Close() error {
 	return err
 }
 
-type ProxyWSListener struct {
-	addr        *proxy.ProxyAddr
+type listener struct {
 	newConnCh   chan *wsConnWrapper
 	errorCh     chan error
 	httpServer  *http.Server
 	isListening bool
 }
 
-func CreateWSListenerProxy(addr *proxy.ProxyAddr) (*proxy.Proxy, error) {
-	p := &ProxyWSListener{
-		addr:        addr,
-		newConnCh:   make(chan *wsConnWrapper),
-		errorCh:     make(chan error),
-		isListening: false,
-	}
-	return proxy.CreateProxyFromListener(p), nil
-}
-
-func (p *ProxyWSListener) handleWebsocket(w http.ResponseWriter, r *http.Request) {
+func (ln *listener) handleWebsocket(w http.ResponseWriter, r *http.Request) {
 	wsConn, err := websocket.Accept(w, r, nil)
 	if err != nil {
 		fmt.Println(err)
@@ -60,58 +49,66 @@ func (p *ProxyWSListener) handleWebsocket(w http.ResponseWriter, r *http.Request
 		Conn:   conn,
 		doneCh: make(chan bool),
 	}
-	p.newConnCh <- wrappedConn
+	ln.newConnCh <- wrappedConn
 	<-wrappedConn.doneCh
 }
 
-func (p *ProxyWSListener) Listen() error {
+func (ln *listener) Listen(prox *proxy.Proxy) error {
 	handler := http.NewServeMux()
-	handler.HandleFunc(p.addr.Path, p.handleWebsocket)
+	handler.HandleFunc(prox.GetStringOption("Path"), ln.handleWebsocket)
 
-	server, err := helper.NewHTTPServer(handler, p.addr.Host, "", nil)
+	server, err := helper.NewHTTPServer(handler, net.JoinHostPort(prox.GetStringOption("Hostname"), prox.GetStringOption("Port")), "", nil)
 	if err != nil {
 		return err
 	}
 
-	p.httpServer = server
+	ln.httpServer = server
 
 	newConnCh := make(chan *wsConnWrapper)
-	p.newConnCh = newConnCh
+	ln.newConnCh = newConnCh
 
 	go func() {
 		if err := server.ListenAndServe(); err != nil {
-			p.errorCh <- err
+			ln.errorCh <- err
 		}
 	}()
 
-	p.isListening = true
+	ln.isListening = true
 
 	return nil
 }
 
-func (p *ProxyWSListener) Accept() (net.Conn, error) {
+func (ln *listener) Accept() (net.Conn, error) {
 	select {
-	case conn := <-p.newConnCh:
+	case conn := <-ln.newConnCh:
 		return conn, nil
-	case err := <-p.errorCh:
+	case err := <-ln.errorCh:
 		return nil, err
 	}
 }
 
-func (p *ProxyWSListener) IsListening() bool {
-	return p.isListening
+func (ln *listener) IsListening() bool {
+	return ln.isListening
+}
+
+func (ln *listener) Close() error {
+	return ln.httpServer.Shutdown(context.Background())
 }
 
 func init() {
-	proxy.Registry.Add(proxy.ProxyEntryPoint{
-		Scheme: "ws-listen",
-		Create: CreateWSListenerProxy,
-		Help: proxy.ProxyHelp{
-			Description: "serve websocket",
-			Examples: []string{
-				"$ gcat proxy ws-listen://localhost:1234/ws -",
-			},
-			Args: helpArgs,
+	l := &listener{
+		newConnCh:   make(chan *wsConnWrapper),
+		errorCh:     make(chan error),
+		isListening: false,
+	}
+
+	proxy.Registry.Add(proxy.Proxy{
+		Scheme:      "ws-listen",
+		Description: "serve websocket",
+		Listener:    l,
+		Examples: []string{
+			"$ gcat proxy ws-listen://localhost:1234/ws -",
 		},
+		StringOptions: options,
 	})
 }

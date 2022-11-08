@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"strings"
 	"text/template"
-	"time"
 
 	"golang.org/x/exp/maps"
 )
@@ -38,67 +37,14 @@ const (
 )
 
 type ProxyDialer interface {
-	Dial() (net.Conn, error)
+	Dial(proxy *Proxy) (net.Conn, error)
 }
 
 type ProxyListener interface {
-	// TODO: Add Close() method.
 	IsListening() bool
-	Listen() error
+	Listen(proxy *Proxy) error
 	Accept() (net.Conn, error)
-}
-
-type Proxy struct {
-	Listener ProxyListener
-	Dialer   ProxyDialer
-	Conn     net.Conn
-}
-
-func CreateProxyFromConn(conn net.Conn) *Proxy {
-	return &Proxy{Conn: conn}
-}
-
-func CreateProxyFromDialer(d ProxyDialer) *Proxy {
-	return &Proxy{Dialer: d}
-}
-
-func CreateProxyFromListener(ln ProxyListener) *Proxy {
-	return &Proxy{Listener: ln}
-}
-
-func (p *Proxy) Kind() ProxyKind {
-	if p.Listener != nil {
-		return ProxyKindListener
-	}
-	if p.Dialer != nil {
-		return ProxyKindDialer
-	}
-	if p.Conn != nil {
-		return ProxyKindReadWriteCloser
-	}
-
-	panic("BUG: invalid proxy")
-}
-
-func (p *Proxy) Connect() (net.Conn, error) {
-	switch p.Kind() {
-
-	case ProxyKindDialer:
-		return p.Dialer.Dial()
-
-	case ProxyKindListener:
-		if !p.Listener.IsListening() {
-			if err := p.Listener.Listen(); err != nil {
-				return nil, err
-			}
-		}
-		return p.Listener.Accept()
-
-	case ProxyKindReadWriteCloser:
-		return p.Conn, nil
-	}
-
-	panic("BUG: invalid proxy")
+	Close() error
 }
 
 func fixupURL(rawURL string) string {
@@ -135,6 +81,30 @@ func (a *ProxyAddr) Network() string {
 }
 
 func (a *ProxyAddr) GetStringOption(key, fallback string) string {
+	// URL elements not in querystring.
+	switch key {
+	case "Host":
+		if a.Host == "" {
+			return fallback
+		}
+		return a.Host
+	case "Hostname":
+		if a.Hostname() == "" {
+			return fallback
+		}
+		return a.Hostname()
+	case "Port":
+		if a.Port() == "" {
+			return fallback
+		}
+		return a.Port()
+	case "Path":
+		if a.Path == "" {
+			return fallback
+		}
+		return a.Path
+	}
+
 	qs := a.URL.Query()
 
 	if qs.Has(key) {
@@ -166,81 +136,89 @@ func (a *ProxyAddr) String() string {
 	return a.URL.String()
 }
 
-type BaseConn struct {
-	LocalAddress  *ProxyAddr
-	RemoteAddress *ProxyAddr
+type ProxyOptionType interface {
+	string | bool | int
 }
 
-func (c *BaseConn) Read(b []byte) (int, error) {
-	return 0, ErrNotImplemented
-}
-
-func (c *BaseConn) Write(b []byte) (int, error) {
-	return 0, ErrNotImplemented
-}
-
-func (c *BaseConn) Close() error {
-	return ErrNotImplemented
-}
-
-func (c *BaseConn) LocalAddr() net.Addr {
-	return c.LocalAddress
-}
-
-func (c *BaseConn) RemoteAddr() net.Addr {
-	return c.RemoteAddress
-}
-
-func (c *BaseConn) SetDeadline(t time.Time) error {
-	return ErrNotImplemented
-}
-
-func (c *BaseConn) SetReadDeadline(t time.Time) error {
-	return ErrNotImplemented
-}
-
-func (c *BaseConn) SetWriteDeadline(t time.Time) error {
-	return ErrNotImplemented
-}
-
-type ProxyHelpArg struct {
+type ProxyOption[T ProxyOptionType] struct {
 	Name        string
-	Type        string
-	Explanation string
-	Default     string
-}
-
-type ProxyHelp struct {
 	Description string
-	Examples    []string
-	Args        []ProxyHelpArg
+	Default     T
 }
 
-type ProxyEntryPoint struct {
-	Create func(addr *ProxyAddr) (*Proxy, error)
-	Scheme ProxyScheme
-	Help   ProxyHelp
+type Proxy struct {
+	Scheme           ProxyScheme
+	Description      string
+	Examples         []string
+	SupportsMultiple bool
+	SupportsStreams  bool
+
+	StringOptions []ProxyOption[string]
+	BoolOptions   []ProxyOption[bool]
+	IntOptions    []ProxyOption[int]
+
+	Listener ProxyListener
+	Dialer   ProxyDialer
+	Conn     net.Conn
+
+	addr *ProxyAddr
 }
 
-func (ep *ProxyEntryPoint) String() string {
+func (p *Proxy) Instantiate(addr *ProxyAddr) *Proxy {
+	if addr.ProxyScheme() != p.Scheme {
+		panic(fmt.Sprintf("wrong scheme %s; expected %s", addr.ProxyScheme(), p.Scheme))
+	}
+	p.addr = addr
+
+	return p
+}
+
+func (p *Proxy) Target() *ProxyAddr {
+	if p.addr == nil {
+		panic("BUG: proxy not instantiated")
+	}
+
+	return p.addr
+}
+
+func (ep *Proxy) Help() string {
 	var (
 		builder strings.Builder
 		tpl     = template.Must(template.New("help").Parse(`# Scheme
 
 {{ .Scheme }}
-
+		
 ## Description
 
-{{ .Help.Description }}
-{{ if .Help.Args }}
-## Arguments
-{{ range .Help.Args }}
-  * {{ .Name }} ({{ .Type }}){{if .Default}} [default: "{{ .Default }}"]{{end}}: {{ .Explanation }}{{end}}
+{{ .Description }}
+		
+## Params
+
+* SupportsMultipleConnections: {{ .SupportsMultiple }}
+* SupportsStreams: {{ .SupportsStreams }}
+{{ if .StringOptions }}
+## String Options
+{{ range .StringOptions }}
+  * {{ .Name }} {{if .Default}} [default: "{{ .Default }}"]{{end}}: {{ .Description }}{{end}}
 {{ else }}
 no arguments
 {{end}}
-{{ if .Help.Examples }}## Examples
-{{ range .Help.Examples }}
+{{ if .IntOptions }}
+## Int Options
+{{ range .IntOptions }}
+  * {{ .Name }} {{if .Default}} [default: "{{ .Default }}"]{{end}}: {{ .Description }}{{end}}
+{{ else }}
+no arguments
+{{end}}
+## Bool Options
+{{ if .BoolOptions }}
+{{ range .BoolOptions }}
+  * {{ .Name }} {{if .Default}} [default: "{{ .Default }}"]{{end}}: {{ .Description }}{{end}}
+{{ else }}
+no arguments
+{{end}}
+{{ if .Examples }}## Examples
+{{ range .Examples }}
   {{ . }}{{end}}
 {{end}}
 `))
@@ -252,39 +230,142 @@ no arguments
 
 	return strings.TrimSpace(builder.String())
 }
+func (p *Proxy) Kind() ProxyKind {
+	if p.Listener != nil {
+		return ProxyKindListener
+	}
+	if p.Dialer != nil {
+		return ProxyKindDialer
+	}
+	if p.Conn != nil {
+		return ProxyKindReadWriteCloser
+	}
+
+	panic("BUG: invalid proxy")
+}
+
+func (p *Proxy) Connect() (net.Conn, error) {
+	switch p.Kind() {
+
+	case ProxyKindDialer:
+		return p.Dialer.Dial(p)
+
+	case ProxyKindListener:
+		if !p.Listener.IsListening() {
+			if err := p.Listener.Listen(p); err != nil {
+				return nil, err
+			}
+		}
+		return p.Listener.Accept()
+
+	case ProxyKindReadWriteCloser:
+		return p.Conn, nil
+	}
+
+	panic("BUG: invalid proxy")
+}
+
+func (p *Proxy) GetStringOption(key string) string {
+	var (
+		found    = false
+		fallback string
+	)
+
+	for _, opt := range p.StringOptions {
+		if key == opt.Name {
+			fallback = opt.Default
+			found = true
+			break
+		}
+	}
+	if found == false {
+		panic(fmt.Sprintf("BUG: unknown option: %s", key))
+	}
+
+	return p.addr.GetStringOption(key, fallback)
+}
+
+func (p *Proxy) GetBoolOption(key string) bool {
+	var (
+		found    = false
+		fallback bool
+	)
+
+	for _, opt := range p.BoolOptions {
+		if key == opt.Name {
+			fallback = opt.Default
+			found = true
+			break
+		}
+	}
+	if found == false {
+		panic(fmt.Sprintf("BUG: unknown option: %s", key))
+	}
+
+	val, err := p.addr.GetBoolOption(key, fallback)
+	if err != nil {
+		panic(err)
+	}
+	return val
+}
+
+func (p *Proxy) GetIntOption(key string, base int) int {
+	var (
+		found    = false
+		fallback int
+	)
+
+	for _, opt := range p.IntOptions {
+		if key == opt.Name {
+			fallback = opt.Default
+			found = true
+			break
+		}
+	}
+	if found == false {
+		panic(fmt.Sprintf("BUG: unknown option: %s", key))
+	}
+
+	val, err := p.addr.GetIntOption(key, base, fallback)
+	if err != nil {
+		panic(err)
+	}
+	return val
+}
 
 type ProxyRegistry struct {
-	data map[ProxyScheme]ProxyEntryPoint
+	data map[ProxyScheme]Proxy
 }
 
 func (r ProxyRegistry) Keys() []ProxyScheme {
 	return maps.Keys(r.data)
 }
 
-func (r ProxyRegistry) Values() []ProxyEntryPoint {
+func (r ProxyRegistry) Values() []Proxy {
 	return maps.Values(r.data)
 }
 
-func (r ProxyRegistry) Get(key ProxyScheme) (ProxyEntryPoint, error) {
+func (r ProxyRegistry) Get(key ProxyScheme) (Proxy, error) {
 	if v, ok := r.data[key]; ok {
 		return v, nil
 	}
-	return ProxyEntryPoint{}, fmt.Errorf("no such proxy: %s", key)
+	return Proxy{}, fmt.Errorf("no such proxy: %s", key)
 }
 
-func (r *ProxyRegistry) Add(ep ProxyEntryPoint) {
+func (r *ProxyRegistry) Add(ep Proxy) {
 	if _, ok := r.data[ep.Scheme]; ok {
 		panic(fmt.Sprintf("proxy with scheme %s already registered", ep.Scheme))
 	}
 	r.data[ep.Scheme] = ep
 }
 
-func (r *ProxyRegistry) Create(addr *ProxyAddr) (*Proxy, error) {
-	ep, ok := r.data[addr.ProxyScheme()]
-	if !ok {
-		return nil, fmt.Errorf("%w: %s", ErrProxyNotSupported, addr.ProxyScheme())
+func (r *ProxyRegistry) CreateProxyInstance(addr *ProxyAddr) (*Proxy, error) {
+	p, err := r.Get(addr.ProxyScheme())
+	if err != nil {
+		return nil, err
 	}
-	return ep.Create(addr)
+
+	return p.Instantiate(addr), nil
 }
 
-var Registry = ProxyRegistry{data: make(map[ProxyScheme]ProxyEntryPoint)}
+var Registry = ProxyRegistry{data: make(map[ProxyScheme]Proxy)}

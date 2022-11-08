@@ -3,26 +3,22 @@ package main
 import (
 	"fmt"
 	"net"
-	"os"
-	"os/signal"
-	"syscall"
 
 	"github.com/rumpelsepp/gcat/lib/helper"
 	"github.com/rumpelsepp/gcat/lib/proxy"
 	_ "github.com/rumpelsepp/gcat/lib/proxy/exec"
-	_ "github.com/rumpelsepp/gcat/lib/proxy/quic"
+	// _ "github.com/rumpelsepp/gcat/lib/proxy/quic"
 	_ "github.com/rumpelsepp/gcat/lib/proxy/stdio"
 	_ "github.com/rumpelsepp/gcat/lib/proxy/tcp"
 	_ "github.com/rumpelsepp/gcat/lib/proxy/tun"
 	_ "github.com/rumpelsepp/gcat/lib/proxy/websocket"
+	_ "github.com/rumpelsepp/gcat/lib/proxy/webtransport"
 	"github.com/spf13/cobra"
 )
 
 type mainLoop struct {
 	proxyLeft  *proxy.Proxy
 	proxyRight *proxy.Proxy
-	connLeft   net.Conn
-	connRight  net.Conn
 }
 
 func CreateLoop(addrLeft, addrRight string) (*mainLoop, error) {
@@ -36,12 +32,12 @@ func CreateLoop(addrLeft, addrRight string) (*mainLoop, error) {
 		return nil, err
 	}
 
-	proxyLeft, err := proxy.Registry.Create(addrLeftParsed)
+	proxyLeft, err := proxy.Registry.CreateProxyInstance(addrLeftParsed)
 	if err != nil {
 		return nil, err
 	}
 
-	proxyRight, err := proxy.Registry.Create(addrRightParsed)
+	proxyRight, err := proxy.Registry.CreateProxyInstance(addrRightParsed)
 	if err != nil {
 		return nil, err
 	}
@@ -52,39 +48,30 @@ func CreateLoop(addrLeft, addrRight string) (*mainLoop, error) {
 	}, nil
 }
 
-func (l *mainLoop) Run() error {
+func (l *mainLoop) CheckMultiple() bool {
+	if !l.proxyLeft.SupportsMultiple || !l.proxyRight.SupportsMultiple {
+		return false
+	}
+	return true
+}
+
+func (l *mainLoop) Connect() (net.Conn, net.Conn, error) {
 	connLeft, err := l.proxyLeft.Connect()
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
-	l.connLeft = connLeft
 
 	connRight, err := l.proxyRight.Connect()
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
-	l.connRight = connRight
 
-	_, _, err = helper.BidirectCopy(l.connLeft, l.connRight)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (l *mainLoop) Abort() {
-	if l.connLeft != nil {
-		l.connLeft.Close()
-		l.connLeft = nil
-	}
-	if l.connRight != nil {
-		l.connRight.Close()
-		l.connRight = nil
-	}
+	return connLeft, connRight, nil
 }
 
 type proxyOptions struct {
-	loop bool
+	loop     bool
+	parallel bool
 }
 
 var (
@@ -111,43 +98,49 @@ command.
 
   SSH Tunnel through Websocket (https://rumpelsepp.org/blog/ssh-through-websocket/):
 
-      $ ssh -o 'ProxyCommand=gcat proxy wss://example.org/ssh/' user@example.org`,
+      $ ssh -o 'ProxyCommand=gcat proxy wss://example.org/ssh/ -' user@example.org`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) != 2 {
 				return fmt.Errorf("provide two urls")
 			}
 
-			var (
-				addrLeftRaw  = args[0]
-				addrRightRaw = args[1]
-				done         = make(chan error)
-			)
-
-			loop, err := CreateLoop(addrLeftRaw, addrRightRaw)
+			loop, err := CreateLoop(args[0], args[1])
 			if err != nil {
 				return err
 			}
 
-			go func() {
-				if proxyOpts.loop {
-					for {
-						loop.Run()
-						loop.Abort()
+			if proxyOpts.loop {
+				for {
+					lConn, rConn, err := loop.Connect()
+					if err != nil {
+						return err
 					}
+
+					helper.BidirectCopy(lConn, rConn)
 				}
-				done <- loop.Run()
-			}()
+			}
 
-			c := make(chan os.Signal, 1)
-			signal.Notify(c, os.Interrupt)
+			if proxyOpts.parallel {
+				if !loop.CheckMultiple() {
+					return fmt.Errorf("multiple connections not supported by chosen pipeline")
+				}
 
-			select {
-			case <-c:
-				loop.Abort()
-				os.Exit(128 + int(syscall.SIGINT))
-			case err := <-done:
+				for {
+					lConn, rConn, err := loop.Connect()
+					if err != nil {
+						return err
+					}
+
+					go helper.BidirectCopy(lConn, rConn)
+				}
+			}
+
+			lConn, rConn, err := loop.Connect()
+			if err != nil {
 				return err
 			}
+
+			helper.BidirectCopy(lConn, rConn)
 
 			return nil
 		},
@@ -158,4 +151,5 @@ func init() {
 	rootCmd.AddCommand(proxyCmd)
 	f := proxyCmd.Flags()
 	f.BoolVarP(&proxyOpts.loop, "loop", "l", false, "keep the listener running")
+	f.BoolVarP(&proxyOpts.parallel, "parallel", "p", false, "serve multiple connections in parallel")
 }

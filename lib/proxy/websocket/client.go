@@ -4,24 +4,16 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"time"
 
 	"github.com/rumpelsepp/gcat/lib/proxy"
 	"nhooyr.io/websocket"
 )
 
-type ProxyWS struct {
-	KeepAlive time.Duration
-	addr      *proxy.ProxyAddr
-}
+type dialer struct{}
 
-func CreateWSProxy(addr *proxy.ProxyAddr) (*proxy.Proxy, error) {
-	return proxy.CreateProxyFromDialer(&ProxyWS{addr: addr}), nil
-}
-
-func (p *ProxyWS) Dial() (net.Conn, error) {
+func (p *dialer) Dial(prox *proxy.Proxy) (net.Conn, error) {
 	var (
-		target  = fmt.Sprintf("%s://%s%s", p.addr.Scheme, p.addr.Host, p.addr.Path)
+		target  = fmt.Sprintf("%s://%s%s", prox.Scheme, net.JoinHostPort(prox.GetStringOption("Hostname"), prox.GetStringOption("Port")), prox.GetStringOption("Path"))
 		ctx     = context.Background()
 		options = websocket.DialOptions{}
 	)
@@ -33,26 +25,22 @@ func (p *ProxyWS) Dial() (net.Conn, error) {
 }
 
 func init() {
-	proxy.Registry.Add(proxy.ProxyEntryPoint{
-		Scheme: "ws",
-		Create: CreateWSProxy,
-		Help: proxy.ProxyHelp{
-			Description: "connect to a quic host:port",
-			Examples: []string{
-				"$ gcat proxy ws://localhost:1234 -",
-			},
-			Args: helpArgs,
+	proxy.Registry.Add(proxy.Proxy{
+		Scheme:      "ws",
+		Description: "connect websocket host over http",
+		Dialer:      &dialer{},
+		Examples: []string{
+			"$ gcat proxy ws://localhost:1234 -",
 		},
+		StringOptions: options,
 	})
-	proxy.Registry.Add(proxy.ProxyEntryPoint{
-		Scheme: "wss",
-		Create: CreateWSProxy,
-		Help: proxy.ProxyHelp{
-			Description: "connect to a quic host:port",
-			Examples: []string{
-				"$ gcat proxy wss://localhost:1234 -",
-			},
-			Args: helpArgs,
+	proxy.Registry.Add(proxy.Proxy{
+		Scheme:      "wss",
+		Description: "connect websocket host over https",
+		Dialer:      &dialer{},
+		Examples: []string{
+			"$ gcat proxy wss://localhost:1234 -",
 		},
+		StringOptions: options,
 	})
 }

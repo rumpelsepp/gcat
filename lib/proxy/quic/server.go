@@ -82,7 +82,7 @@ func CreateQUICListenerProxy(addr *proxy.ProxyAddr) (*proxy.Proxy, error) {
 }
 
 func init() {
-	proxy.Registry.Add(proxy.ProxyEntryPoint{
+	proxy.Registry.Add(proxy.Proxy{
 		Scheme: "quic-listen",
 		Create: CreateQUICListenerProxy,
 		Help: proxy.ProxyHelp{

@@ -40,63 +40,51 @@ func (w *cmdConn) Close() error {
 }
 
 type ExecDialer struct {
-	command    *exec.Cmd
-	remoteAddr *proxy.ProxyAddr
 }
 
-func (d *ExecDialer) Dial() (net.Conn, error) {
-	d.command.Stderr = os.Stderr
-	stdout, err := d.command.StdoutPipe()
+func (d *ExecDialer) Dial(prox *proxy.Proxy) (net.Conn, error) {
+	var (
+		cmd      = prox.GetStringOption("cmd")
+		cmdParts = strings.Split(cmd, " ")
+		command  = exec.Command(cmdParts[0], cmdParts[1:]...)
+	)
+
+	command.Stderr = os.Stderr
+	stdout, err := command.StdoutPipe()
 	if err != nil {
 		return nil, err
 	}
-	stdin, err := d.command.StdinPipe()
+	stdin, err := command.StdinPipe()
 	if err != nil {
 		return nil, err
 	}
-	if err := d.command.Start(); err != nil {
+	if err := command.Start(); err != nil {
 		return nil, err
 	}
 	return &cmdConn{
 		BaseConn: proxy.BaseConn{
 			LocalAddress:  nil,
-			RemoteAddress: d.remoteAddr,
+			RemoteAddress: prox.Target(),
 		},
-		command: d.command,
+		command: command,
 		stdout:  stdout,
 		stdin:   stdin,
 	}, nil
 }
 
-func CreateProxy(addr *proxy.ProxyAddr) (*proxy.Proxy, error) {
-	var (
-		query    = addr.Query()
-		cmd      = query.Get("cmd")
-		cmdParts = strings.Split(cmd, " ")
-	)
-	return proxy.CreateProxyFromDialer(
-		&ExecDialer{
-			command:    exec.Command(cmdParts[0], cmdParts[1:]...),
-			remoteAddr: addr,
-		}), nil
-}
-
 func init() {
-	proxy.Registry.Add(proxy.ProxyEntryPoint{
-		Scheme: "exec",
-		Create: CreateProxy,
-		Help: proxy.ProxyHelp{
-			Description: "spawn a programm and connect via stdio",
-			Examples: []string{
-				"$ gcat proxy 'exec:?cmd=cat -'",
-				"$ gcat proxy 'exec:cat -'",
-			},
-			Args: []proxy.ProxyHelpArg{
-				{
-					Name:        "cmd",
-					Type:        "string",
-					Explanation: "the relevant command",
-				},
+	proxy.Registry.Add(proxy.Proxy{
+		Scheme:      "exec",
+		Description: "spawn a programm and connect via stdio",
+		Dialer:      &ExecDialer{},
+		Examples: []string{
+			"$ gcat proxy 'exec:?cmd=cat -'",
+			"$ gcat proxy 'exec:cat -'",
+		},
+		StringOptions: []proxy.ProxyOption[string]{
+			{
+				Name:        "cmd",
+				Description: "the relevant command",
 			},
 		},
 	})
