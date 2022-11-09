@@ -10,18 +10,27 @@ import (
 )
 
 type ProxyQuic struct {
-	Address    string
 	tlsConfig  *tls.Config
 	quicConfig *quic.Config
 }
 
-func (p *ProxyQuic) Dial() (net.Conn, error) {
+func (p *ProxyQuic) Dial(prox *proxy.Proxy) (net.Conn, error) {
 	var (
 		stream quic.Stream
 		err    error
 	)
 
-	conn, err := quic.DialAddr(p.Address, p.tlsConfig, p.quicConfig)
+	if p.quicConfig == nil || p.tlsConfig == nil {
+		tlsConfig, quicConfig, err := parseOptions(prox)
+		if err != nil {
+			return nil, err
+		}
+
+		p.tlsConfig = tlsConfig
+		p.quicConfig = quicConfig
+	}
+
+	conn, err := quic.DialAddr(net.JoinHostPort(prox.GetStringOption("Hostname"), prox.GetStringOption("Port")), p.tlsConfig, p.quicConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -39,29 +48,18 @@ func (p *ProxyQuic) Dial() (net.Conn, error) {
 	}, nil
 }
 
-func CreateQUICProxy(addr *proxy.ProxyAddr) (*proxy.Proxy, error) {
-	tlsConfig, quicConfig, err := parseOptions(addr)
-	if err != nil {
-		return nil, err
-	}
-	return proxy.CreateProxyFromDialer(
-		&ProxyQuic{
-			Address:    addr.Host,
-			tlsConfig:  tlsConfig,
-			quicConfig: quicConfig,
-		}), nil
-}
-
 func init() {
 	proxy.Registry.Add(proxy.Proxy{
-		Scheme: "quic",
-		Create: CreateQUICProxy,
-		Help: proxy.ProxyHelp{
-			Description: "connect to a quic host:port",
-			Examples: []string{
-				"$ gcat proxy quic://localhost:1234 -",
-			},
-			Args: helpArgs,
+		Scheme:      "quic",
+		Dialer:      &ProxyQuic{},
+		Description: "connect to a quic host:port",
+		Examples: []string{
+			"$ gcat proxy quic://localhost:1234 -",
 		},
-	})
+		SupportsMultiple: true,
+		StringOptions:    stringOptions,
+		IntOptions:       intOptions,
+		BoolOptions:      boolOptions,
+	},
+	)
 }

@@ -54,27 +54,27 @@ func (srv *SSHServer) makeSSHSessionHandler(shell string) ssh.Handler {
 
 		switch {
 		case isPty:
-			srv.logger.Debug("PTY requested")
-			// TODO: better function sig, error handling.
-			srv.createPty(s, shell)
+			if err := srv.createPty(s, shell); err != nil {
+				srv.logger.Error("error serving pty", err)
+			}
+			return
 
 		case len(s.Command()) > 0:
-			srv.logger.Info("No PTY requested, executing command: '%s'", s.RawCommand())
-
 			cmd := exec.CommandContext(s.Context(), s.Command()[0], s.Command()[1:]...)
 
-			if stdin, err := cmd.StdinPipe(); err != nil {
+			stdin, err := cmd.StdinPipe()
+			if err != nil {
 				srv.logger.Error("Could not initialize StdinPipe", err)
 				s.Exit(1)
 				return
-			} else {
-				go func() {
-					if _, err := io.Copy(stdin, s); err != nil {
-						srv.logger.Error(fmt.Sprintf("Error while copying input from %s to stdin: %s", s.RemoteAddr().String()), err)
-					}
-					s.Close()
-				}()
 			}
+
+			go func() {
+				if _, err := io.Copy(stdin, s); err != nil {
+					srv.logger.Error(fmt.Sprintf("copying input from %s to stdin", s.RemoteAddr().String()), err)
+				}
+				s.Close()
+			}()
 
 			cmd.Stdout = s
 			cmd.Stderr = s

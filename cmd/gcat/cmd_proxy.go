@@ -7,7 +7,7 @@ import (
 	"github.com/rumpelsepp/gcat/lib/helper"
 	"github.com/rumpelsepp/gcat/lib/proxy"
 	_ "github.com/rumpelsepp/gcat/lib/proxy/exec"
-	// _ "github.com/rumpelsepp/gcat/lib/proxy/quic"
+	_ "github.com/rumpelsepp/gcat/lib/proxy/quic"
 	_ "github.com/rumpelsepp/gcat/lib/proxy/stdio"
 	_ "github.com/rumpelsepp/gcat/lib/proxy/tcp"
 	_ "github.com/rumpelsepp/gcat/lib/proxy/tun"

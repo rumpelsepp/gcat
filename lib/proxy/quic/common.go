@@ -2,8 +2,10 @@ package quic
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"net"
@@ -15,115 +17,91 @@ import (
 	"github.com/rumpelsepp/gcat/lib/proxy"
 )
 
-var helpArgs = []proxy.ProxyHelpArg{
-	{
-		Name:        "Hostname",
-		Type:        "string",
-		Explanation: "target ip address",
-	},
-	{
-		Name:        "Port",
-		Type:        "int",
-		Explanation: "target port",
-	},
-	{
-		Name:        "use_datagrams",
-		Type:        "bool",
-		Explanation: "use unreliable datagrams (RFC9221)",
-		Default:     "false",
-	},
-	{
-		Name:        "next_proto",
-		Type:        "string",
-		Explanation: "value to use in the ALPN field (https://github.com/quicwg/base-drafts/wiki/ALPN-IDs-used-with-QUIC)",
-		Default:     "quic",
-	},
-	{
-		Name:        "key_path",
-		Type:        "string",
-		Explanation: "path to pem encoded private key",
-	},
-	{
-		Name:        "cert_path",
-		Type:        "string",
-		Explanation: "path to pem encoded certificte",
-	},
-	{
-		Name:        "keylog_file",
-		Type:        "string",
-		Explanation: "path to sslkeylog file (for debugging)",
-	},
-	{
-		Name:        "keepalive_period",
-		Type:        "int",
-		Explanation: "keepalive interval in seconds",
-	},
-	{
-		Name:        "fingerprint",
-		Type:        "string",
-		Explanation: "pin to this publickey fingerprint (SHA256)",
-	},
-}
+var (
+	stringOptions = []proxy.ProxyOption[string]{
+		{
+			Name:        "Hostname",
+			Description: "target ip address",
+		},
+		{
+			Name:        "Port",
+			Description: "target port",
+		},
+		{
+			Name:        "key_path",
+			Description: "path to pem encoded private key",
+		},
+		{
+			Name:        "cert_path",
+			Description: "path to pem encoded certificte",
+		},
+		{
+			Name:        "keylog_file",
+			Description: "path to sslkeylog file (for debugging)",
+		},
+		{
+			Name:        "fingerprint",
+			Description: "pin to this publickey fingerprint (SHA256)",
+		},
+		{
+			Name:        "next_proto",
+			Description: "value to use in the ALPN field (https://github.com/quicwg/base-drafts/wiki/ALPN-IDs-used-with-QUIC)",
+			Default:     "quic",
+		},
+	}
+	boolOptions = []proxy.ProxyOption[bool]{
+		{
+			Name:        "skip_verify",
+			Description: "skip certificate verification",
+			Default:     false,
+		},
+		{
+			Name:        "enable_datagrams",
+			Description: "use unreliable datagrams (RFC9221)",
+			Default:     false,
+		},
+	}
+	intOptions = []proxy.ProxyOption[int]{
+		{
+			Name:        "keepalive_period",
+			Description: "keepalive interval in seconds",
+		},
+	}
+)
 
-func fingerprint(cert []byte) ([]byte, error) {
-	parsedCert, err := x509.ParseCertificate(cert)
+func makeVerifier(fingerprint string) (func([][]byte, [][]*x509.Certificate) error, error) {
+	expectedDigest, err := hex.DecodeString(fingerprint)
 	if err != nil {
 		return nil, err
 	}
-
-}
-
-func makeVerifier(allowed []*Fingerprint) {
 	return func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
-		for _, cert := range rawCerts {
-			remoteFP, err := fingerprint(cert)
-			if err != nil {
-				return err
-			}
-
-			for _, fp := range allowed {
-				if bytes.Equal(remoteFP, fp) {
-					return nil
-				}
-			}
-			if database != nil {
-				if database.IsTrusted(remoteFP) {
-					return nil
-				}
+		for _, rawCert := range rawCerts {
+			digest := sha256.Sum256(rawCert)
+			if bytes.Equal(expectedDigest, digest[:]) {
+				return nil
 			}
 		}
 		return fmt.Errorf("peer is not trusted")
-	}
+	}, nil
 }
 
-func parseOptions(addr *proxy.ProxyAddr) (*tls.Config, *quic.Config, error) {
+func parseOptions(prox *proxy.Proxy) (*tls.Config, *quic.Config, error) {
 	var (
 		err         error
-		nextProto   = addr.GetStringOption("next_proto", "quic")
-		keyPath     = addr.GetStringOption("key_path", "")
-		certPath    = addr.GetStringOption("cert_path", "")
-		keylogFile  = addr.GetStringOption("keylog_file", "")
-		fingerprint = addr.GetStringOption("fingerprint", "")
+		verifier    func([][]byte, [][]*x509.Certificate) error
+		keyPath     = prox.GetStringOption("key_path")
+		certPath    = prox.GetStringOption("cert_path")
+		keylogFile  = prox.GetStringOption("keylog_file")
+		fingerprint = prox.GetStringOption("fingerprint")
+		skipVerify  = prox.GetBoolOption("skip_verify")
+		clientAuth  = tls.NoClientCert
 	)
-
-	enableDatagrams, err := addr.GetBoolOption("use_datagrams", false)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	keepAlivePeriod, err := addr.GetIntOption("keep_alive_period", 10, 10)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	insecureSkipVerify, err := addr.GetBoolOption("skip_verify", false)
-	if err != nil {
-		return nil, nil, err
-	}
 
 	var cert tls.Certificate
 	if keyPath == "" || certPath == "" {
 		cert, err = helper.GenTLSCertificate()
+		digest := sha256.Sum256(cert.Certificate[0])
+		fmt.Printf("generated cert: %s\n", hex.EncodeToString(digest[:]))
 	} else {
 		cert, err = tls.LoadX509KeyPair(certPath, keyPath)
 	}
@@ -144,16 +122,27 @@ func parseOptions(addr *proxy.ProxyAddr) (*tls.Config, *quic.Config, error) {
 		keylogWriter = f
 	}
 
+	if fingerprint != "" {
+		skipVerify = true
+		verifier, err = makeVerifier(fingerprint)
+		if err != nil {
+			return nil, nil, err
+		}
+		clientAuth = tls.RequireAnyClientCert
+	}
+
 	var (
 		tlsConfig = &tls.Config{
-			Certificates:       []tls.Certificate{cert},
-			InsecureSkipVerify: insecureSkipVerify,
-			NextProtos:         []string{nextProto},
-			KeyLogWriter:       keylogWriter,
+			Certificates:          []tls.Certificate{cert},
+			InsecureSkipVerify:    skipVerify,
+			NextProtos:            []string{prox.GetStringOption("next_proto")},
+			KeyLogWriter:          keylogWriter,
+			VerifyPeerCertificate: verifier,
+			ClientAuth:            clientAuth,
 		}
 		quicConfig = &quic.Config{
-			EnableDatagrams: enableDatagrams,
-			KeepAlivePeriod: time.Duration(keepAlivePeriod) * time.Second,
+			EnableDatagrams: prox.GetBoolOption("enable_datagrams"),
+			KeepAlivePeriod: time.Duration(prox.GetIntOption("keepalive_period", 10)) * time.Second,
 		}
 	)
 

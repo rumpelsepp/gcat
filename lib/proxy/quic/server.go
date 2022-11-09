@@ -10,10 +10,9 @@ import (
 )
 
 type ProxyQuicListener struct {
-	Address    string
-	tlsConfig  *tls.Config
-	quicConfig *quic.Config
 	listener   quic.Listener
+	quicConfig *quic.Config
+	tlsConfig  *tls.Config
 }
 
 func (p *ProxyQuicListener) IsListening() bool {
@@ -23,22 +22,36 @@ func (p *ProxyQuicListener) IsListening() bool {
 	return true
 }
 
-func (p *ProxyQuicListener) Listen() error {
+func (p *ProxyQuicListener) Listen(prox *proxy.Proxy) error {
 	if p.IsListening() {
 		return proxy.ErrProxyBusy
 	}
 
-	packetConn, err := net.ListenPacket("udp", p.Address)
+	tlsConfig, quicConfig, err := parseOptions(prox)
 	if err != nil {
 		return err
 	}
 
-	quicLn, err := quic.Listen(packetConn, p.tlsConfig, p.quicConfig)
+	p.tlsConfig = tlsConfig
+	p.quicConfig = quicConfig
+
+	packetConn, err := net.ListenPacket("udp", net.JoinHostPort(prox.GetStringOption("Hostname"), prox.GetStringOption("Port")))
 	if err != nil {
 		return err
 	}
+
+	quicLn, err := quic.Listen(packetConn, tlsConfig, quicConfig)
+	if err != nil {
+		return err
+	}
+
 	p.listener = quicLn
+
 	return nil
+}
+
+func (p *ProxyQuicListener) Close() error {
+	return p.listener.Close()
 }
 
 func (p *ProxyQuicListener) Accept() (net.Conn, error) {
@@ -68,29 +81,17 @@ func (p *ProxyQuicListener) Accept() (net.Conn, error) {
 	}, nil
 }
 
-func CreateQUICListenerProxy(addr *proxy.ProxyAddr) (*proxy.Proxy, error) {
-	tlsConfig, quicConfig, err := parseOptions(addr)
-	if err != nil {
-		return nil, err
-	}
-	return proxy.CreateProxyFromListener(
-		&ProxyQuicListener{
-			Address:    addr.Host,
-			tlsConfig:  tlsConfig,
-			quicConfig: quicConfig,
-		}), nil
-}
-
 func init() {
 	proxy.Registry.Add(proxy.Proxy{
-		Scheme: "quic-listen",
-		Create: CreateQUICListenerProxy,
-		Help: proxy.ProxyHelp{
-			Description: "spacn quic server",
-			Examples: []string{
-				"$ gcat proxy quic-listen://localhost:1234 -",
-			},
-			Args: helpArgs,
+		Scheme:      "quic-listen",
+		Description: "spacn quic server",
+		Examples: []string{
+			"$ gcat proxy quic-listen://localhost:1234 -",
 		},
+		SupportsMultiple: true,
+		Listener:         &ProxyQuicListener{},
+		StringOptions:    stringOptions,
+		IntOptions:       intOptions,
+		BoolOptions:      boolOptions,
 	})
 }

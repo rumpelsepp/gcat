@@ -19,16 +19,15 @@ package gssh
 import (
 	"context"
 	"fmt"
-	"io"
-	"os"
 	"os/exec"
 	"os/user"
 
 	"github.com/creack/pty"
 	"github.com/gliderlabs/ssh"
+	"github.com/rumpelsepp/gcat/lib/helper"
 )
 
-func (srv *SSHServer) createPty(s ssh.Session, shell string) {
+func (srv *SSHServer) createPty(s ssh.Session, shell string) error {
 	var (
 		ptyReq, winCh, _ = s.Pty()
 		ctx, cancel      = context.WithCancel(context.Background())
@@ -42,8 +41,7 @@ func (srv *SSHServer) createPty(s ssh.Session, shell string) {
 	}
 	f, err := pty.Start(cmd)
 	if err != nil {
-		srv.logger.Error("Could not start shell", err)
-		os.Exit(1)
+		return err
 	}
 	go func() {
 		for win := range winCh {
@@ -52,14 +50,7 @@ func (srv *SSHServer) createPty(s ssh.Session, shell string) {
 		}
 	}()
 
-	go func() {
-		io.Copy(f, s)
-		s.Close()
-	}()
-	go func() {
-		io.Copy(s, f)
-		s.Close()
-	}()
+	go helper.BidirectCopy(f, s)
 
 	done := make(chan error, 1)
 	go func() { done <- cmd.Wait() }()
@@ -69,14 +60,13 @@ func (srv *SSHServer) createPty(s ssh.Session, shell string) {
 		if err != nil {
 			srv.logger.Error("Session ended with error", err)
 			s.Exit(255)
-			return
+			return err
 		}
 		srv.logger.Info("Session ended normally")
 		s.Exit(cmd.ProcessState.ExitCode())
-		return
+		return nil
 
 	case <-s.Context().Done():
-		srv.logger.Info(fmt.Sprintf("Session terminated: %s", s.Context().Err()))
-		return
+		return nil
 	}
 }
