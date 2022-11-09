@@ -11,6 +11,7 @@ import (
 	_ "github.com/rumpelsepp/gcat/lib/proxy/stdio"
 	_ "github.com/rumpelsepp/gcat/lib/proxy/tcp"
 	_ "github.com/rumpelsepp/gcat/lib/proxy/tun"
+	_ "github.com/rumpelsepp/gcat/lib/proxy/unix"
 	_ "github.com/rumpelsepp/gcat/lib/proxy/websocket"
 	_ "github.com/rumpelsepp/gcat/lib/proxy/webtransport"
 	"github.com/spf13/cobra"

@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"net"
@@ -9,6 +10,7 @@ import (
 	"strings"
 	"text/template"
 
+	markdown "github.com/MichaelMure/go-term-markdown"
 	"golang.org/x/exp/maps"
 )
 
@@ -184,9 +186,10 @@ func (p *Proxy) Target() *ProxyAddr {
 func (ep *Proxy) Help() string {
 	var (
 		builder strings.Builder
-		tpl     = template.Must(template.New("help").Parse(`# Scheme
+		tpl     = template.Must(template.New("help").Parse(`# Proxy Module
+## Scheme
 
-{{ .Scheme }}
+` + "`" + `{{ .Scheme }}` + "`" + `
 		
 ## Description
 
@@ -194,32 +197,33 @@ func (ep *Proxy) Help() string {
 		
 ## Params
 
-* SupportsMultipleConnections: {{ .SupportsMultiple }}
-* SupportsStreams: {{ .SupportsStreams }}
-{{ if .StringOptions }}
+* SupportsMultipleConnections: ` + "`" + `{{ .SupportsMultiple }}` + "`" + `
+* SupportsStreams: ` + "`" + `{{ .SupportsStreams }}` + "`" + `
+
 ## String Options
+{{ if .StringOptions }}
 {{ range .StringOptions }}
-  * {{ .Name }} {{if .Default}} [default: "{{ .Default }}"]{{end}}: {{ .Description }}{{end}}
+  * ` + "`" + `{{ .Name }}` + "`" + `{{if .Default}} [default: ` + "`" + `{{ .Default }}` + "`" + `]{{end}}: {{ .Description }}{{end}}
 {{ else }}
 no arguments
 {{end}}
-{{ if .IntOptions }}
 ## Int Options
+{{ if .IntOptions }}
 {{ range .IntOptions }}
-  * {{ .Name }} {{if .Default}} [default: "{{ .Default }}"]{{end}}: {{ .Description }}{{end}}
+  * ` + "`" + `{{ .Name }}` + "`" + `{{if .Default}} [default: ` + "`" + `{{ .Default }}` + "`" + `]{{end}}: {{ .Description }}{{end}}
 {{ else }}
 no arguments
 {{end}}
 ## Bool Options
 {{ if .BoolOptions }}
 {{ range .BoolOptions }}
-  * {{ .Name }} {{if .Default}} [default: "{{ .Default }}"]{{end}}: {{ .Description }}{{end}}
+  * ` + "`" + `{{ .Name }}` + "`" + `{{if .Default}} [default: ` + "`" + `{{ .Default }}` + "`" + `]{{end}}: {{ .Description }}{{end}}
 {{ else }}
 no arguments
 {{end}}
 {{ if .Examples }}## Examples
 {{ range .Examples }}
-  {{ . }}{{end}}
+    {{ . }}{{end}}
 {{end}}
 `))
 	)
@@ -228,7 +232,7 @@ no arguments
 		panic(err)
 	}
 
-	return strings.TrimSpace(builder.String())
+	return string(bytes.TrimSpace(markdown.Render(builder.String(), 80, 2)))
 }
 func (p *Proxy) Kind() ProxyKind {
 	if p.Listener != nil {
