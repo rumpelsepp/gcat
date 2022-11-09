@@ -1,19 +1,15 @@
 package tcp
 
 import (
-	"fmt"
 	"net"
 
 	"github.com/rumpelsepp/gcat/lib/proxy"
 )
 
-type ProxyTCP struct {
-}
+type ProxyTCP struct{}
 
 func (p *ProxyTCP) Dial(prox *proxy.Proxy) (net.Conn, error) {
-	a := net.JoinHostPort(prox.GetStringOption("Hostname"), prox.GetStringOption("Port"))
-	fmt.Println(a)
-	return net.Dial("tcp", a)
+	return net.Dial("tcp", net.JoinHostPort(prox.GetStringOption("Hostname"), prox.GetStringOption("Port")))
 }
 
 type ProxyTCPListener struct {
