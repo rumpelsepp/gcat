@@ -103,9 +103,10 @@ func init() {
 	}
 
 	proxy.Registry.Add(proxy.Proxy{
-		Scheme:      "ws-listen",
-		Description: "serve websocket",
-		Listener:    l,
+		Scheme:           "ws-listen",
+		Description:      "serve websocket",
+		Listener:         l,
+		SupportsMultiple: true,
 		Examples: []string{
 			"$ gcat proxy ws-listen://localhost:1234/ws -",
 		},
