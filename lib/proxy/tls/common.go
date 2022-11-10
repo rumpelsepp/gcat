@@ -84,15 +84,17 @@ func ParseOptions(prox *proxy.Proxy) (*tls.Config, error) {
 	)
 
 	var cert tls.Certificate
-	if keyPath == "" || certPath == "" {
-		cert, err = helper.GenTLSCertificate()
-		digest := sha256.Sum256(cert.Certificate[0])
-		fmt.Printf("generated cert: %s\n", hex.EncodeToString(digest[:]))
-	} else {
-		cert, err = tls.LoadX509KeyPair(certPath, keyPath)
-	}
-	if err != nil {
-		return nil, err
+	if prox.IsListener() {
+		if keyPath == "" || certPath == "" {
+			cert, err = helper.GenTLSCertificate()
+			digest := sha256.Sum256(cert.Certificate[0])
+			fmt.Printf("generated cert: %s\n", hex.EncodeToString(digest[:]))
+		} else {
+			cert, err = tls.LoadX509KeyPair(certPath, keyPath)
+		}
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if keylogFile == "" {

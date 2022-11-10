@@ -161,6 +161,10 @@ type Proxy struct {
 	addr *ProxyAddr
 }
 
+func (p *Proxy) IsListener() bool {
+	return p.Target().ProxyScheme().IsListener()
+}
+
 func (p *Proxy) Instantiate(addr *ProxyAddr) *Proxy {
 	if addr.ProxyScheme() != p.Scheme {
 		panic(fmt.Sprintf("wrong scheme %s; expected %s", addr.ProxyScheme(), p.Scheme))
@@ -265,7 +269,7 @@ func (p *Proxy) Connect() (net.Conn, error) {
 }
 
 func (p *Proxy) TargetHost() string {
-	return net.JoinHostPort(p.GetStringOption("Host"), p.GetStringOption("Port"))
+	return net.JoinHostPort(p.GetStringOption("Hostname"), p.GetStringOption("Port"))
 }
 
 func (p *Proxy) GetStringOption(key string) string {

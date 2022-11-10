@@ -22,7 +22,7 @@ type dialer struct {
 
 func (d *dialer) Dial(prox *proxy.Proxy) (net.Conn, error) {
 	var (
-		ip   = prox.GetStringOption("Host")
+		ip   = prox.GetStringOption("Hostname")
 		mask = strings.TrimPrefix(prox.GetStringOption("Path"), "/")
 		mtu  = prox.GetIntOption("mtu", 10)
 		dev  = prox.GetStringOption("dev")
