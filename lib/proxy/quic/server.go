@@ -7,6 +7,7 @@ import (
 
 	"github.com/lucas-clemente/quic-go"
 	"github.com/rumpelsepp/gcat/lib/proxy"
+	gtls "github.com/rumpelsepp/gcat/lib/proxy/tls"
 )
 
 type ProxyQuicListener struct {
@@ -84,14 +85,14 @@ func (p *ProxyQuicListener) Accept() (net.Conn, error) {
 func init() {
 	proxy.Registry.Add(proxy.Proxy{
 		Scheme:      "quic-listen",
-		Description: "spacn quic server",
+		Description: "spawn quic server",
 		Examples: []string{
 			"$ gcat proxy quic-listen://localhost:1234 -",
 		},
 		SupportsMultiple: true,
 		Listener:         &ProxyQuicListener{},
-		StringOptions:    stringOptions,
+		StringOptions:    gtls.StringOptions,
 		IntOptions:       intOptions,
-		BoolOptions:      boolOptions,
+		BoolOptions:      append(gtls.BoolOptions, boolOptions...),
 	})
 }

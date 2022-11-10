@@ -85,11 +85,6 @@ func (a *ProxyAddr) Network() string {
 func (a *ProxyAddr) GetStringOption(key, fallback string) string {
 	// URL elements not in querystring.
 	switch key {
-	case "Host":
-		if a.Host == "" {
-			return fallback
-		}
-		return a.Host
 	case "Hostname":
 		if a.Hostname() == "" {
 			return fallback
@@ -267,6 +262,10 @@ func (p *Proxy) Connect() (net.Conn, error) {
 	}
 
 	panic("BUG: invalid proxy")
+}
+
+func (p *Proxy) TargetHost() string {
+	return net.JoinHostPort(p.GetStringOption("Host"), p.GetStringOption("Port"))
 }
 
 func (p *Proxy) GetStringOption(key string) string {

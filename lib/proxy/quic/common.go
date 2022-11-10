@@ -1,60 +1,18 @@
 package quic
 
 import (
-	"bytes"
-	"crypto/sha256"
 	"crypto/tls"
-	"crypto/x509"
-	"encoding/hex"
-	"fmt"
-	"io"
 	"net"
-	"os"
 	"time"
 
 	"github.com/lucas-clemente/quic-go"
-	"github.com/rumpelsepp/gcat/lib/helper"
 	"github.com/rumpelsepp/gcat/lib/proxy"
+	gtls "github.com/rumpelsepp/gcat/lib/proxy/tls"
 )
 
 var (
-	stringOptions = []proxy.ProxyOption[string]{
-		{
-			Name:        "Hostname",
-			Description: "target ip address",
-		},
-		{
-			Name:        "Port",
-			Description: "target port",
-		},
-		{
-			Name:        "key_path",
-			Description: "path to pem encoded private key",
-		},
-		{
-			Name:        "cert_path",
-			Description: "path to pem encoded certificte",
-		},
-		{
-			Name:        "keylog_file",
-			Description: "path to sslkeylog file (for debugging)",
-		},
-		{
-			Name:        "fingerprint",
-			Description: "pin to this publickey fingerprint (SHA256)",
-		},
-		{
-			Name:        "next_proto",
-			Description: "value to use in the ALPN field (https://github.com/quicwg/base-drafts/wiki/ALPN-IDs-used-with-QUIC)",
-			Default:     "quic",
-		},
-	}
+	// Shared with the tls proxy.
 	boolOptions = []proxy.ProxyOption[bool]{
-		{
-			Name:        "skip_verify",
-			Description: "skip certificate verification",
-			Default:     false,
-		},
 		{
 			Name:        "enable_datagrams",
 			Description: "use unreliable datagrams (RFC9221)",
@@ -69,82 +27,16 @@ var (
 	}
 )
 
-func makeVerifier(fingerprint string) (func([][]byte, [][]*x509.Certificate) error, error) {
-	expectedDigest, err := hex.DecodeString(fingerprint)
-	if err != nil {
-		return nil, err
-	}
-	return func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
-		for _, rawCert := range rawCerts {
-			digest := sha256.Sum256(rawCert)
-			if bytes.Equal(expectedDigest, digest[:]) {
-				return nil
-			}
-		}
-		return fmt.Errorf("peer is not trusted")
-	}, nil
-}
-
 func parseOptions(prox *proxy.Proxy) (*tls.Config, *quic.Config, error) {
-	var (
-		err         error
-		verifier    func([][]byte, [][]*x509.Certificate) error
-		keyPath     = prox.GetStringOption("key_path")
-		certPath    = prox.GetStringOption("cert_path")
-		keylogFile  = prox.GetStringOption("keylog_file")
-		fingerprint = prox.GetStringOption("fingerprint")
-		skipVerify  = prox.GetBoolOption("skip_verify")
-		clientAuth  = tls.NoClientCert
-	)
-
-	var cert tls.Certificate
-	if keyPath == "" || certPath == "" {
-		cert, err = helper.GenTLSCertificate()
-		digest := sha256.Sum256(cert.Certificate[0])
-		fmt.Printf("generated cert: %s\n", hex.EncodeToString(digest[:]))
-	} else {
-		cert, err = tls.LoadX509KeyPair(certPath, keyPath)
-	}
+	tlsConfig, err := gtls.ParseOptions(prox)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	if keylogFile == "" {
-		keylogFile = os.Getenv("SSLKEYLOGFILE")
+	quicConfig := &quic.Config{
+		EnableDatagrams: prox.GetBoolOption("enable_datagrams"),
+		KeepAlivePeriod: time.Duration(prox.GetIntOption("keepalive_period", 10)) * time.Second,
 	}
-
-	var keylogWriter io.Writer = nil
-	if keylogFile != "" {
-		f, err := os.Create(keylogFile)
-		if err != nil {
-			return nil, nil, err
-		}
-		keylogWriter = f
-	}
-
-	if fingerprint != "" {
-		skipVerify = true
-		verifier, err = makeVerifier(fingerprint)
-		if err != nil {
-			return nil, nil, err
-		}
-		clientAuth = tls.RequireAnyClientCert
-	}
-
-	var (
-		tlsConfig = &tls.Config{
-			Certificates:          []tls.Certificate{cert},
-			InsecureSkipVerify:    skipVerify,
-			NextProtos:            []string{prox.GetStringOption("next_proto")},
-			KeyLogWriter:          keylogWriter,
-			VerifyPeerCertificate: verifier,
-			ClientAuth:            clientAuth,
-		}
-		quicConfig = &quic.Config{
-			EnableDatagrams: prox.GetBoolOption("enable_datagrams"),
-			KeepAlivePeriod: time.Duration(prox.GetIntOption("keepalive_period", 10)) * time.Second,
-		}
-	)
 
 	return tlsConfig, quicConfig, nil
 }

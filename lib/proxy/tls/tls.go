@@ -2,26 +2,75 @@ package gtls
 
 import (
 	"crypto/tls"
-	"io"
 	"net"
+
+	"github.com/rumpelsepp/gcat/lib/proxy"
 )
 
-type ProxyTLS struct {
-	Network string
-	Address string
-	Dialer  *tls.Dialer
+type dialer struct{}
+
+func (d *dialer) Dial(prox *proxy.Proxy) (net.Conn, error) {
+	tlsConfig, err := ParseOptions(prox)
+	if err != nil {
+		return nil, err
+	}
+	return tls.Dial("tcp", prox.TargetHost(), tlsConfig)
 }
 
-func (p *ProxyTLS) Dial() (io.ReadWriteCloser, error) {
-	return p.Dialer.Dial(p.Network, p.Address)
+type listener struct {
+	ln net.Listener
 }
 
-type ProxyTLSListener struct {
-	Network string
-	Address string
-	Config  *tls.Config
+func (ln *listener) IsListening() bool {
+	if ln.ln != nil {
+		return true
+	}
+	return false
 }
 
-func (p *ProxyTLSListener) Listen() (net.Listener, error) {
-	return tls.Listen(p.Network, p.Address, p.Config)
+func (ln *listener) Listen(prox *proxy.Proxy) error {
+	tlsConfig, err := ParseOptions(prox)
+	if err != nil {
+		return err
+	}
+
+	tlsListener, err := tls.Listen("tcp", prox.TargetHost(), tlsConfig)
+	if err != nil {
+		return err
+	}
+
+	ln.ln = tlsListener
+
+	return nil
+}
+
+func (ln *listener) Accept() (net.Conn, error) {
+	return ln.ln.Accept()
+}
+
+func (ln *listener) Close() error {
+	return ln.ln.Close()
+}
+
+func init() {
+	proxy.Registry.Add(proxy.Proxy{
+		Scheme:      "tls",
+		Description: "dial to a tls host",
+		Examples: []string{
+			"$ gcat tls://google.de:443 -",
+		},
+		StringOptions: StringOptions,
+		BoolOptions:   BoolOptions,
+		Dialer:        &dialer{},
+	})
+	proxy.Registry.Add(proxy.Proxy{
+		Scheme:      "tls-listen",
+		Description: "spawn a tls listener",
+		Examples: []string{
+			"$ gcat tls-listen://127.0.0.1:1234 -",
+		},
+		StringOptions: StringOptions,
+		BoolOptions:   BoolOptions,
+		Listener:      &listener{},
+	})
 }

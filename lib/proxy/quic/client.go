@@ -7,6 +7,7 @@ import (
 
 	"github.com/lucas-clemente/quic-go"
 	"github.com/rumpelsepp/gcat/lib/proxy"
+	gtls "github.com/rumpelsepp/gcat/lib/proxy/tls"
 )
 
 type ProxyQuic struct {
@@ -57,9 +58,9 @@ func init() {
 			"$ gcat proxy quic://localhost:1234 -",
 		},
 		SupportsMultiple: true,
-		StringOptions:    stringOptions,
+		StringOptions:    gtls.StringOptions,
 		IntOptions:       intOptions,
-		BoolOptions:      boolOptions,
+		BoolOptions:      append(gtls.BoolOptions, boolOptions...),
 	},
 	)
 }
