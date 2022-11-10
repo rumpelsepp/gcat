@@ -13,7 +13,7 @@ import (
 type WebDAVServer struct {
 	Root   string
 	Listen string
-	Logger slog.Logger
+	Logger *slog.Logger
 }
 
 func (s *WebDAVServer) Run() error {

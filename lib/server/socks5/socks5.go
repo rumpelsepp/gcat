@@ -99,7 +99,7 @@ type UsernamePasswordResponse struct {
 
 type Server struct {
 	Listen   string
-	Logger   slog.Logger
+	Logger   *slog.Logger
 	Auth     int
 	Username string
 	Password string

@@ -15,7 +15,7 @@ import (
 )
 
 type SSHServer struct {
-	logger         slog.Logger
+	logger         *slog.Logger
 	HostKey        string
 	AuthorizedKeys string
 	Root           string
