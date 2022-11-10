@@ -377,7 +377,7 @@ func (s *Server) serveClient(conn io.ReadWriteCloser) error {
 	return nil
 }
 
-func (s *Server) Serve() error {
+func (s *Server) ListenAndServe() error {
 	ln, err := net.Listen("tcp", s.Listen)
 	if err != nil {
 		return err

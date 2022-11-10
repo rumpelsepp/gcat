@@ -33,7 +33,7 @@ var (
 				Password: serveSOCKS5Opts.password,
 			}
 
-			return srv.Serve()
+			return srv.ListenAndServe()
 		},
 	}
 )
