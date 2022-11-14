@@ -8,6 +8,6 @@ However, `gcat` provides the following delta to `socat`:
   The `serve` command might be used in penetration tests or quick 'n' dirty lab setups.
   Here is an excerpt for supported protocols: `doh`, `ftp`, `http`, `ssh`, `webdav`.
 
-- `proxy` command: it works similar to `socat`. Data is copied between two proxy modules (such as `quic`, `tls`, or `stdin`) specified as command line arguments.
+- `proxy` command: it works similar to `socat`. Data is copied between two proxy modules (such as `quic`, `tls`, or `stdio`) specified as command line arguments.
 
 - Written in Go: it is easy to compile `gcat` to a static binary with **no** runtime dependencies.
