@@ -106,12 +106,12 @@ func init() {
 	})
 
 	proxy.Registry.Add(proxy.Proxy{
-		Scheme:      "shell",
-		Description: "spawn a shell and connect via stdio",
+		Scheme:      "system",
+		Description: "execute `cmd` via a shell and connect via stdio",
 		Dialer:      &shellDialer{},
 		Examples: []string{
-			"$ gcat proxy 'shell:?cmd=cat -'",
-			"$ gcat proxy 'shell:cat -'",
+			"$ gcat proxy 'system:?cmd=cat -'",
+			"$ gcat proxy 'system:cat -'",
 		},
 		StringOptions: []proxy.ProxyOption[string]{
 			{
