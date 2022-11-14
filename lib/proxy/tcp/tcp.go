@@ -6,24 +6,24 @@ import (
 	"github.com/rumpelsepp/gcat/lib/proxy"
 )
 
-type ProxyTCP struct{}
+type dialer struct{}
 
-func (p *ProxyTCP) Dial(prox *proxy.Proxy) (net.Conn, error) {
+func (p *dialer) Dial(prox *proxy.Proxy) (net.Conn, error) {
 	return net.Dial("tcp", net.JoinHostPort(prox.GetStringOption("Hostname"), prox.GetStringOption("Port")))
 }
 
-type ProxyTCPListener struct {
+type listener struct {
 	listener net.Listener
 }
 
-func (p *ProxyTCPListener) IsListening() bool {
+func (p *listener) IsListening() bool {
 	if p.listener == nil {
 		return false
 	}
 	return true
 }
 
-func (p *ProxyTCPListener) Listen(prox *proxy.Proxy) error {
+func (p *listener) Listen(prox *proxy.Proxy) error {
 	if p.IsListening() {
 		return proxy.ErrProxyBusy
 	}
@@ -36,14 +36,14 @@ func (p *ProxyTCPListener) Listen(prox *proxy.Proxy) error {
 	return nil
 }
 
-func (p *ProxyTCPListener) Accept() (net.Conn, error) {
+func (p *listener) Accept() (net.Conn, error) {
 	if !p.IsListening() {
 		return nil, proxy.ErrProxyNotInitialized
 	}
 	return p.listener.Accept()
 }
 
-func (p *ProxyTCPListener) Close() error {
+func (p *listener) Close() error {
 	if p.IsListening() {
 		return p.listener.Close()
 	}
@@ -58,7 +58,7 @@ func init() {
 		Examples: []string{
 			"$ gcat proxy tcp://localhost:1234 -",
 		},
-		Dialer: &ProxyTCP{},
+		Dialer: &dialer{},
 		StringOptions: []proxy.ProxyOption[string]{
 			{
 				Name:        "Hostname",
@@ -79,7 +79,7 @@ func init() {
 		Examples: []string{
 			"$ gcat proxy tcp-listen://localhost:1234 -",
 		},
-		Listener: &ProxyTCPListener{},
+		Listener: &listener{},
 		StringOptions: []proxy.ProxyOption[string]{
 			{
 				Name:        "Hostname",
