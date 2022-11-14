@@ -82,12 +82,6 @@ type stdioProxy struct {
 	stdioWrapper
 }
 
-func NewStdioDialer() *stdioProxy {
-	return &stdioProxy{
-		stdioWrapper: *newStdioWrapper(),
-	}
-}
-
 func (p *stdioProxy) Dial(prox *proxy.Proxy) (net.Conn, error) {
 	if p.stdioWrapper.closed {
 		if err := p.stdioWrapper.Reopen(); err != nil {
@@ -101,7 +95,9 @@ func init() {
 	proxy.Registry.Add(proxy.Proxy{
 		Scheme:      "stdio",
 		Description: "use stdio; shortcut is `-`",
-		Dialer:      NewStdioDialer(),
+		Dialer: &stdioProxy{
+			stdioWrapper: *newStdioWrapper(),
+		},
 		Examples: []string{
 			"$ gcat proxy tcp-listen://localhost:1234 stdio:",
 			"$ gcat proxy tcp-listen://localhost:1234 -",
