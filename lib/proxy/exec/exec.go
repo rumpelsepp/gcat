@@ -27,7 +27,6 @@ func (w *cmdConn) Read(p []byte) (int, error) {
 }
 
 func (w *cmdConn) Close() error {
-	// TODO: maybe use context here.
 	if w.command.Process != nil {
 		if err := w.command.Process.Kill(); err != nil {
 			return err
@@ -39,17 +38,7 @@ func (w *cmdConn) Close() error {
 	return nil
 }
 
-type ExecDialer struct {
-}
-
-func (d *ExecDialer) Dial(prox *proxy.Proxy) (net.Conn, error) {
-	var (
-		cmd      = prox.GetStringOption("cmd")
-		cmdParts = strings.Split(cmd, " ")
-		command  = exec.Command(cmdParts[0], cmdParts[1:]...)
-	)
-
-	command.Stderr = os.Stderr
+func dialCommand(command *exec.Cmd, target *proxy.ProxyAddr) (*cmdConn, error) {
 	stdout, err := command.StdoutPipe()
 	if err != nil {
 		return nil, err
@@ -64,7 +53,7 @@ func (d *ExecDialer) Dial(prox *proxy.Proxy) (net.Conn, error) {
 	return &cmdConn{
 		BaseConn: proxy.BaseConn{
 			LocalAddress:  nil,
-			RemoteAddress: prox.Target(),
+			RemoteAddress: target,
 		},
 		command: command,
 		stdout:  stdout,
@@ -72,11 +61,38 @@ func (d *ExecDialer) Dial(prox *proxy.Proxy) (net.Conn, error) {
 	}, nil
 }
 
+type execDialer struct{}
+
+func (d *execDialer) Dial(prox *proxy.Proxy) (net.Conn, error) {
+	var (
+		cmd      = prox.GetStringOption("cmd")
+		cmdParts = strings.Split(cmd, " ")
+		command  = exec.Command(cmdParts[0], cmdParts[1:]...)
+	)
+
+	return dialCommand(command, prox.Target())
+}
+
+type shellDialer struct{}
+
+func (d *shellDialer) Dial(prox *proxy.Proxy) (net.Conn, error) {
+	var (
+		cmd   = prox.GetStringOption("cmd")
+		shell = os.Getenv("SHELL")
+	)
+
+	if shell == "" {
+		shell = "sh"
+	}
+
+	return dialCommand(exec.Command(shell, "-c", cmd), prox.Target())
+}
+
 func init() {
 	proxy.Registry.Add(proxy.Proxy{
 		Scheme:      "exec",
 		Description: "spawn a programm and connect via stdio",
-		Dialer:      &ExecDialer{},
+		Dialer:      &execDialer{},
 		Examples: []string{
 			"$ gcat proxy 'exec:?cmd=cat -'",
 			"$ gcat proxy 'exec:cat -'",
@@ -85,6 +101,22 @@ func init() {
 			{
 				Name:        "cmd",
 				Description: "the relevant command",
+			},
+		},
+	})
+
+	proxy.Registry.Add(proxy.Proxy{
+		Scheme:      "shell",
+		Description: "spawn a shell and connect via stdio",
+		Dialer:      &shellDialer{},
+		Examples: []string{
+			"$ gcat proxy 'shell:?cmd=cat -'",
+			"$ gcat proxy 'shell:cat -'",
+		},
+		StringOptions: []proxy.ProxyOption[string]{
+			{
+				Name:        "cmd",
+				Description: "shell script",
 			},
 		},
 	})
