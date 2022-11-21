@@ -9,7 +9,7 @@ require (
 	github.com/go-chi/chi/v5 v5.0.7
 	github.com/gorilla/handlers v1.5.1
 	github.com/jedib0t/go-pretty/v6 v6.4.2
-	github.com/lucas-clemente/quic-go v0.30.0
+	github.com/lucas-clemente/quic-go v0.31.0
 	github.com/marten-seemann/webtransport-go v0.2.0
 	github.com/miekg/dns v1.1.50
 	github.com/pkg/sftp v1.13.5
