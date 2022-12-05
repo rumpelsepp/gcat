@@ -10,7 +10,7 @@ require (
 	github.com/gorilla/handlers v1.5.1
 	github.com/jedib0t/go-pretty/v6 v6.4.2
 	github.com/lucas-clemente/quic-go v0.31.0
-	github.com/marten-seemann/webtransport-go v0.4.0
+	github.com/marten-seemann/webtransport-go v0.4.1
 	github.com/miekg/dns v1.1.50
 	github.com/pkg/sftp v1.13.5
 	github.com/spf13/cobra v1.6.1
