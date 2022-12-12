@@ -19,7 +19,7 @@ require (
 	golang.org/x/exp v0.0.0-20221109205753-fc8884afc316
 	golang.org/x/net v0.2.0
 	golang.org/x/sys v0.3.0
-	golang.org/x/term v0.2.0
+	golang.org/x/term v0.3.0
 	nhooyr.io/websocket v1.8.7
 )
 
