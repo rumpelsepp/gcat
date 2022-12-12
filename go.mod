@@ -17,9 +17,9 @@ require (
 	github.com/vishvananda/netlink v1.2.1-beta.2
 	goftp.io/server/v2 v2.0.0
 	golang.org/x/exp v0.0.0-20221109205753-fc8884afc316
-	golang.org/x/net v0.2.0
+	golang.org/x/net v0.4.0
 	golang.org/x/sys v0.3.0
-	golang.org/x/term v0.2.0
+	golang.org/x/term v0.3.0
 	nhooyr.io/websocket v1.8.7
 )
 
@@ -55,6 +55,6 @@ require (
 	golang.org/x/crypto v0.2.0 // indirect
 	golang.org/x/image v0.1.0 // indirect
 	golang.org/x/mod v0.7.0 // indirect
-	golang.org/x/text v0.4.0 // indirect
+	golang.org/x/text v0.5.0 // indirect
 	golang.org/x/tools v0.3.0 // indirect
 )
