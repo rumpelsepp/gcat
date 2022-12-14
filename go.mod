@@ -6,7 +6,7 @@ require (
 	github.com/MichaelMure/go-term-markdown v0.1.4
 	github.com/creack/pty v1.1.18
 	github.com/gliderlabs/ssh v0.3.5
-	github.com/go-chi/chi/v5 v5.0.7
+	github.com/go-chi/chi/v5 v5.0.8
 	github.com/gorilla/handlers v1.5.1
 	github.com/jedib0t/go-pretty/v6 v6.4.3
 	github.com/lucas-clemente/quic-go v0.31.1
