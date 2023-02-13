@@ -18,8 +18,8 @@ require (
 	goftp.io/server/v2 v2.0.0
 	golang.org/x/exp v0.0.0-20221109205753-fc8884afc316
 	golang.org/x/net v0.5.0
-	golang.org/x/sys v0.4.0
-	golang.org/x/term v0.4.0
+	golang.org/x/sys v0.5.0
+	golang.org/x/term v0.5.0
 	nhooyr.io/websocket v1.8.7
 )
 
