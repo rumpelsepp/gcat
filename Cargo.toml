@@ -1,0 +1,22 @@
+[package]
+name = "rcat"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.69"
+async-trait = "0.1.61"
+clap = { version = "4.0.29", features = ["derive", "cargo"] }
+futures-util = { version = "0.3.26", features = ["sink"] }
+humantime-serde = "1.1.1"
+log = "0.4.17"
+quinn = "0.9.3"
+serde = { version = "1.0.152", features = ["derive"] }
+serde_qs = "0.11.0"
+stderrlog = "0.5.4"
+tokio = { version = "1.23.0", features = ["full"] }
+tokio-tungstenite = { version = "0.18.0", features = ["rustls", "rustls-tls-webpki-roots"] }
+tun = { version = "0.5.4", features = ["async"] }
+tungstenite = "0.18.0"
+url = { version = "2.3.1", features = ["serde"] }
+
