@@ -16,7 +16,7 @@ serde_qs = "0.11.0"
 stderrlog = "0.5.4"
 tokio = { version = "1.23.0", features = ["full"] }
 tokio-tungstenite = { version = "0.18.0", features = ["rustls", "rustls-tls-webpki-roots"] }
-tun = { version = "0.5.4", features = ["async"] }
+tun = { version = "0.5.5", features = ["async"] }
 tungstenite = "0.18.0"
 url = { version = "2.3.1", features = ["serde"] }
 
