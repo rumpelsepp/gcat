@@ -14,7 +14,7 @@ quinn = "0.9.3"
 serde = { version = "1.0.155", features = ["derive"] }
 serde_qs = "0.12.0"
 stderrlog = "0.5.4"
-tokio = { version = "1.26.0", features = ["full"] }
+tokio = { version = "1.27.0", features = ["full"] }
 tokio-tungstenite = { version = "0.18.0", features = ["rustls", "rustls-tls-webpki-roots"] }
 tun = { version = "0.5.5", features = ["async"] }
 tungstenite = "0.18.0"
