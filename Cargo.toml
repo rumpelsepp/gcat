@@ -17,6 +17,6 @@ stderrlog = "0.5.4"
 tokio = { version = "1.28.0", features = ["full"] }
 tokio-tungstenite = { version = "0.18.0", features = ["rustls", "rustls-tls-webpki-roots"] }
 tun = { version = "0.5.5", features = ["async"] }
-tungstenite = "0.18.0"
+tungstenite = "0.19.0"
 url = { version = "2.3.1", features = ["serde"] }
 
