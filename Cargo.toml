@@ -10,7 +10,7 @@ clap = { version = "4.2.5", features = ["derive", "cargo"] }
 futures-util = { version = "0.3.27", features = ["sink"] }
 humantime-serde = "1.1.1"
 log = "0.4.18"
-quinn = "0.9.3"
+quinn = "0.10.1"
 serde = { version = "1.0.160", features = ["derive"] }
 serde_qs = "0.12.0"
 stderrlog = "0.5.4"
