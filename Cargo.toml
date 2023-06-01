@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.71"
 async-trait = "0.1.68"
-clap = { version = "4.2.5", features = ["derive", "cargo"] }
+clap = { version = "4.3.0", features = ["derive", "cargo"] }
 futures-util = { version = "0.3.27", features = ["sink"] }
 humantime-serde = "1.1.1"
 log = "0.4.18"
