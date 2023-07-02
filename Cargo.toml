@@ -9,7 +9,7 @@ async-trait = "0.1.68"
 clap = { version = "4.3.10", features = ["derive", "cargo"] }
 futures-util = { version = "0.3.28", features = ["sink"] }
 humantime-serde = "1.1.1"
-log = "0.4.18"
+log = "0.4.19"
 quinn = "0.10.1"
 serde = { version = "1.0.160", features = ["derive"] }
 serde_qs = "0.12.0"
