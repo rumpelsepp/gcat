@@ -3,32 +3,33 @@ package quic
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
 	"net"
 
-	"github.com/lucas-clemente/quic-go"
+	"github.com/quic-go/quic-go"
 	"github.com/rumpelsepp/gcat/lib/proxy"
 	gtls "github.com/rumpelsepp/gcat/lib/proxy/tls"
 )
 
-type ProxyQuicListener struct {
-	listener   quic.Listener
+type QUICListener struct {
+	listener   *quic.Listener
 	quicConfig *quic.Config
 	tlsConfig  *tls.Config
 }
 
-func (p *ProxyQuicListener) IsListening() bool {
+func (p *QUICListener) IsListening() bool {
 	if p.listener == nil {
 		return false
 	}
 	return true
 }
 
-func (p *ProxyQuicListener) Listen(prox *proxy.Proxy) error {
+func (p *QUICListener) Listen(desc *proxy.ProxyDescription) error {
 	if p.IsListening() {
 		return proxy.ErrProxyBusy
 	}
 
-	tlsConfig, quicConfig, err := parseOptions(prox)
+	tlsConfig, quicConfig, err := parseOptions(desc)
 	if err != nil {
 		return err
 	}
@@ -36,12 +37,13 @@ func (p *ProxyQuicListener) Listen(prox *proxy.Proxy) error {
 	p.tlsConfig = tlsConfig
 	p.quicConfig = quicConfig
 
-	packetConn, err := net.ListenPacket("udp", net.JoinHostPort(prox.GetStringOption("Hostname"), prox.GetStringOption("Port")))
+	packetConn, err := net.ListenPacket("udp", desc.TargetHost())
 	if err != nil {
 		return err
 	}
 
 	quicLn, err := quic.Listen(packetConn, tlsConfig, quicConfig)
+	fmt.Println("listening")
 	if err != nil {
 		return err
 	}
@@ -51,11 +53,11 @@ func (p *ProxyQuicListener) Listen(prox *proxy.Proxy) error {
 	return nil
 }
 
-func (p *ProxyQuicListener) Close() error {
+func (p *QUICListener) Close() error {
 	return p.listener.Close()
 }
 
-func (p *ProxyQuicListener) Accept() (net.Conn, error) {
+func (p *QUICListener) Accept() (net.Conn, error) {
 	if !p.IsListening() {
 		return nil, proxy.ErrProxyNotInitialized
 	}
@@ -67,30 +69,33 @@ func (p *ProxyQuicListener) Accept() (net.Conn, error) {
 		return nil, err
 	}
 
-	var stream quic.Stream
-	if !p.quicConfig.EnableDatagrams {
-		stream, err = conn.AcceptStream(ctx)
-		if err != nil {
-			return nil, err
-		}
+	if p.quicConfig.EnableDatagrams {
+		return &datagramWrapper{
+			ctx:  ctx,
+			conn: conn,
+		}, nil
 	}
 
-	return &connWrapper{
-		conn:         conn,
-		stream:       stream,
-		useDatagrams: p.quicConfig.EnableDatagrams,
+	stream, err := conn.AcceptStream(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return &streamWrapper{
+		conn:   conn,
+		stream: stream,
 	}, nil
 }
 
 func init() {
-	proxy.Registry.Add(proxy.Proxy{
+	proxy.Registry.Add(proxy.ProxyDescription{
 		Scheme:      "quic-listen",
 		Description: "spawn quic server",
 		Examples: []string{
 			"$ gcat proxy quic-listen://localhost:1234 -",
 		},
 		SupportsMultiple: true,
-		Listener:         &ProxyQuicListener{},
+		Listener:         &QUICListener{},
 		StringOptions:    gtls.StringOptions,
 		IntOptions:       intOptions,
 		BoolOptions:      append(gtls.BoolOptions, boolOptions...),

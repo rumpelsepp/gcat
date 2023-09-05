@@ -1,11 +1,11 @@
 package main
 
 import (
+	"log/slog"
 	"os"
 
 	"github.com/rumpelsepp/gcat/lib/server/socks5"
 	"github.com/spf13/cobra"
-	"golang.org/x/exp/slog"
 )
 
 type serveSOCKS5Options struct {
@@ -27,7 +27,7 @@ var (
 
 			srv := socks5.Server{
 				Listen:   serveSOCKS5Opts.listen,
-				Logger:   slog.New(slog.NewTextHandler(os.Stderr)),
+				Logger:   slog.New(slog.NewTextHandler(os.Stderr, nil)),
 				Auth:     auth,
 				Username: serveSOCKS5Opts.username,
 				Password: serveSOCKS5Opts.password,

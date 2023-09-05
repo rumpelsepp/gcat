@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 
+	"github.com/jba/muxpatterns" // will be included in the stdlib
 	"github.com/rumpelsepp/gcat/lib/helper"
 	"github.com/rumpelsepp/gcat/lib/proxy"
 	"nhooyr.io/websocket"
@@ -15,14 +16,19 @@ type wsConnWrapper struct {
 	net.Conn
 	isClosed bool
 	doneCh   chan bool
+	context  context.Context
+	cancel   context.CancelCauseFunc
 }
 
 func (w *wsConnWrapper) Close() error {
 	if w.isClosed {
 		return nil
 	}
-	w.doneCh <- true
+
 	err := w.Conn.Close()
+
+	defer w.cancel(err)
+
 	if err != nil {
 		w.isClosed = true
 		return nil
@@ -35,6 +41,7 @@ type listener struct {
 	errorCh     chan error
 	httpServer  *http.Server
 	isListening bool
+	context     context.Context
 }
 
 func (ln *listener) handleWebsocket(w http.ResponseWriter, r *http.Request) {
@@ -44,20 +51,33 @@ func (ln *listener) handleWebsocket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	conn := websocket.NetConn(context.Background(), wsConn, websocket.MessageBinary)
-	wrappedConn := &wsConnWrapper{
-		Conn:   conn,
-		doneCh: make(chan bool),
-	}
+	ctx, cancel := context.WithCancelCause(r.Context())
+
+	var (
+		conn        = websocket.NetConn(ln.context, wsConn, websocket.MessageBinary)
+		wrappedConn = &wsConnWrapper{
+			Conn:    conn,
+			doneCh:  make(chan bool),
+			context: ctx,
+			cancel:  cancel,
+		}
+	)
+
 	ln.newConnCh <- wrappedConn
-	<-wrappedConn.doneCh
+
+	select {
+	case <-wrappedConn.context.Done():
+		if err := context.Cause(wrappedConn.context); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	}
 }
 
-func (ln *listener) Listen(prox *proxy.Proxy) error {
-	handler := http.NewServeMux()
-	handler.HandleFunc(prox.GetStringOption("Path"), ln.handleWebsocket)
+func (ln *listener) Listen(desc *proxy.ProxyDescription) error {
+	handler := muxpatterns.NewServeMux()
+	handler.HandleFunc(fmt.Sprintf("GET %s", desc.GetStringOption("Path")), ln.handleWebsocket)
 
-	server, err := helper.NewHTTPServer(handler, net.JoinHostPort(prox.GetStringOption("Hostname"), prox.GetStringOption("Port")), "", nil)
+	server, err := helper.NewHTTPServer(handler, desc.TargetHost(), "", nil)
 	if err != nil {
 		return err
 	}
@@ -92,20 +112,21 @@ func (ln *listener) IsListening() bool {
 }
 
 func (ln *listener) Close() error {
-	return ln.httpServer.Shutdown(context.Background())
+	return ln.httpServer.Shutdown(ln.context)
 }
 
 func init() {
-	l := &listener{
+	ln := &listener{
 		newConnCh:   make(chan *wsConnWrapper),
 		errorCh:     make(chan error),
 		isListening: false,
+		context:     context.Background(),
 	}
 
-	proxy.Registry.Add(proxy.Proxy{
+	proxy.Registry.Add(proxy.ProxyDescription{
 		Scheme:           "ws-listen",
 		Description:      "serve websocket",
-		Listener:         l,
+		Listener:         ln,
 		SupportsMultiple: true,
 		Examples: []string{
 			"$ gcat proxy ws-listen://localhost:1234/ws -",

@@ -1,6 +1,7 @@
 package tcp
 
 import (
+	"context"
 	"net"
 
 	"github.com/rumpelsepp/gcat/lib/proxy"
@@ -8,8 +9,9 @@ import (
 
 type dialer struct{}
 
-func (p *dialer) Dial(prox *proxy.Proxy) (net.Conn, error) {
-	return net.Dial("tcp", net.JoinHostPort(prox.GetStringOption("Hostname"), prox.GetStringOption("Port")))
+func (p *dialer) Dial(ctx context.Context, desc *proxy.ProxyDescription) (net.Conn, error) {
+	var dialer net.Dialer
+	return dialer.DialContext(ctx, "tcp", desc.TargetHost())
 }
 
 type listener struct {
@@ -23,12 +25,12 @@ func (p *listener) IsListening() bool {
 	return true
 }
 
-func (p *listener) Listen(prox *proxy.Proxy) error {
+func (p *listener) Listen(desc *proxy.ProxyDescription) error {
 	if p.IsListening() {
 		return proxy.ErrProxyBusy
 	}
 
-	ln, err := net.Listen("tcp", net.JoinHostPort(prox.GetStringOption("Hostname"), prox.GetStringOption("Port")))
+	ln, err := net.Listen("tcp", desc.TargetHost())
 	if err != nil {
 		return err
 	}
@@ -51,7 +53,7 @@ func (p *listener) Close() error {
 }
 
 func init() {
-	proxy.Registry.Add(proxy.Proxy{
+	proxy.Registry.Add(proxy.ProxyDescription{
 		Scheme:           "tcp",
 		Description:      "connect to a tcp host:port",
 		SupportsMultiple: true,
@@ -72,7 +74,7 @@ func init() {
 			},
 		},
 	})
-	proxy.Registry.Add(proxy.Proxy{
+	proxy.Registry.Add(proxy.ProxyDescription{
 		Scheme:           "tcp-listen",
 		Description:      "tcp listen on host:port",
 		SupportsMultiple: true,

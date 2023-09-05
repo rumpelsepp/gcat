@@ -1,6 +1,7 @@
 package unix
 
 import (
+	"context"
 	"net"
 
 	"github.com/rumpelsepp/gcat/lib/proxy"
@@ -8,8 +9,9 @@ import (
 
 type unixDialer struct{}
 
-func (d *unixDialer) Dial(prox *proxy.Proxy) (net.Conn, error) {
-	return net.Dial("unix", prox.GetStringOption("Path"))
+func (d *unixDialer) Dial(ctx context.Context, prox *proxy.ProxyDescription) (net.Conn, error) {
+	var dialer net.Dialer
+	return dialer.DialContext(ctx, "unix", prox.GetStringOption("Path"))
 }
 
 type unixListener struct {
@@ -23,7 +25,7 @@ func (l *unixListener) IsListening() bool {
 	return false
 }
 
-func (l *unixListener) Listen(prox *proxy.Proxy) error {
+func (l *unixListener) Listen(prox *proxy.ProxyDescription) error {
 	ln, err := net.Listen("unix", prox.GetStringOption("Path"))
 	if err != nil {
 		return err
@@ -42,14 +44,16 @@ func (l *unixListener) Close() error {
 
 type unixgramDialer struct{}
 
-func (d *unixgramDialer) Dial(prox *proxy.Proxy) (net.Conn, error) {
-	return net.Dial("unixgram", prox.GetStringOption("Path"))
+func (d *unixgramDialer) Dial(ctx context.Context, desc *proxy.ProxyDescription) (net.Conn, error) {
+	var dialer net.Dialer
+	return dialer.DialContext(ctx, "unixgram", desc.GetStringOption("Path"))
 }
 
 type unixpacketDialer struct{}
 
-func (d *unixpacketDialer) Dial(prox *proxy.Proxy) (net.Conn, error) {
-	return net.Dial("unixpacket", prox.GetStringOption("Path"))
+func (d *unixpacketDialer) Dial(ctx context.Context, desc *proxy.ProxyDescription) (net.Conn, error) {
+	var dialer net.Dialer
+	return dialer.DialContext(ctx, "unixpacket", desc.GetStringOption("Path"))
 }
 
 type unixpacketListener struct {
@@ -63,7 +67,7 @@ func (l *unixpacketListener) IsListening() bool {
 	return false
 }
 
-func (l *unixpacketListener) Listen(prox *proxy.Proxy) error {
+func (l *unixpacketListener) Listen(prox *proxy.ProxyDescription) error {
 	ln, err := net.Listen("unixpacket", prox.GetStringOption("Path"))
 	if err != nil {
 		return err
@@ -86,7 +90,7 @@ var pathOption = proxy.ProxyOption[string]{
 }
 
 func init() {
-	proxy.Registry.Add(proxy.Proxy{
+	proxy.Registry.Add(proxy.ProxyDescription{
 		Scheme:           "unix",
 		Description:      "dial unix domain socket (SOCK_STREAM)",
 		SupportsMultiple: true,
@@ -96,7 +100,7 @@ func init() {
 		Dialer:        &unixDialer{},
 		StringOptions: []proxy.ProxyOption[string]{pathOption},
 	})
-	proxy.Registry.Add(proxy.Proxy{
+	proxy.Registry.Add(proxy.ProxyDescription{
 		Scheme:           "unix-listen",
 		Description:      "listen unix domain socket (SOCK_STREAM)",
 		SupportsMultiple: true,
@@ -106,7 +110,7 @@ func init() {
 		Listener:      &unixListener{},
 		StringOptions: []proxy.ProxyOption[string]{pathOption},
 	})
-	proxy.Registry.Add(proxy.Proxy{
+	proxy.Registry.Add(proxy.ProxyDescription{
 		Scheme:           "unixgram",
 		Description:      "dial unix domain socket (SOCK_DGRAM)",
 		SupportsMultiple: true,
@@ -116,7 +120,7 @@ func init() {
 		Dialer:        &unixgramDialer{},
 		StringOptions: []proxy.ProxyOption[string]{pathOption},
 	})
-	proxy.Registry.Add(proxy.Proxy{
+	proxy.Registry.Add(proxy.ProxyDescription{
 		Scheme:           "unixpacket",
 		Description:      "dial unix domain socket (SOCK_SEQPACKET)",
 		SupportsMultiple: true,
@@ -126,7 +130,7 @@ func init() {
 		Dialer:        &unixpacketDialer{},
 		StringOptions: []proxy.ProxyOption[string]{pathOption},
 	})
-	proxy.Registry.Add(proxy.Proxy{
+	proxy.Registry.Add(proxy.ProxyDescription{
 		Scheme:           "unixpacket-listen",
 		Description:      "listen unix domain socket (SOCK_SEQPACKET)",
 		SupportsMultiple: true,

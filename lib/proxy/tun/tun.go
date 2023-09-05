@@ -1,6 +1,7 @@
 package tun
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"strings"
@@ -20,12 +21,12 @@ type dialer struct {
 	tunDevice
 }
 
-func (d *dialer) Dial(prox *proxy.Proxy) (net.Conn, error) {
+func (d *dialer) Dial(ctx context.Context, desc *proxy.ProxyDescription) (net.Conn, error) {
 	var (
-		ip   = prox.GetStringOption("Hostname")
-		mask = strings.TrimPrefix(prox.GetStringOption("Path"), "/")
-		mtu  = prox.GetIntOption("mtu", 10)
-		dev  = prox.GetStringOption("dev")
+		ip   = desc.GetStringOption("Hostname")
+		mask = strings.TrimPrefix(desc.GetStringOption("Path"), "/")
+		mtu  = desc.GetIntOption("mtu", 10)
+		dev  = desc.GetStringOption("dev")
 	)
 
 	if ip == "" {
@@ -55,7 +56,7 @@ func (d *dialer) Dial(prox *proxy.Proxy) (net.Conn, error) {
 }
 
 func init() {
-	proxy.Registry.Add(proxy.Proxy{
+	proxy.Registry.Add(proxy.ProxyDescription{
 		Scheme:      "tun",
 		Description: "allocate a tun device and send/recv raw ip packets",
 		Examples: []string{

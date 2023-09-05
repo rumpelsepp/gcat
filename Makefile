@@ -2,11 +2,11 @@ GO ?= go
 
 .PHONY: gcat
 gcat:
-	$(GO) build $(GOFLAGS) -o $@ ./cmd/$@
+	CGO_ENABLED=0 $(GO) build $(GOFLAGS) -o $@ ./cmd/$@
 
 .PHONY: update
 update:
-	$(GO) get -u ./cmd/gcat
+	$(GO) get -u ./...
 	$(GO) mod tidy
 
 .PHONY: test

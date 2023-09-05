@@ -35,8 +35,8 @@ type globalOptions struct {
 var (
 	gopts   globalOptions
 	rootCmd = &cobra.Command{
-		Use:          "gcat",
-		Short:        "gcat -- the swiss army knife for network protocols",
+		Use:   "gcat",
+		Short: "gcat -- the swiss army knife for network protocols",
 		Long: `gcat is a tool for penetration testers and sysadmins.
 Its design is roughly based on "socat" (hence the name).
 However, "gcat" provides the following delta to "socat":

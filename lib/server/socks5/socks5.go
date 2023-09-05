@@ -6,12 +6,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net"
 	"syscall"
 	"time"
 
 	"github.com/rumpelsepp/gcat/lib/helper"
-	"golang.org/x/exp/slog"
 )
 
 const (

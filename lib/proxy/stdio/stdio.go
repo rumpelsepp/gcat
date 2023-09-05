@@ -1,8 +1,8 @@
 package stdio
 
 import (
+	"context"
 	"errors"
-	"fmt"
 	"io"
 	"net"
 	"os"
@@ -62,29 +62,27 @@ func (w *stdioWrapper) Write(p []byte) (int, error) {
 	return w.stdout.Write(p)
 }
 
-func (w *stdioWrapper) Reopen() error {
-	if !w.closed {
-		return fmt.Errorf("stdio still open")
+func (w *stdioWrapper) Open() error {
+	if w.closed {
+		w.closed = false
 	}
-	w.closed = false
 	return nil
 }
 
 func (w *stdioWrapper) Close() error {
-	if w.closed {
-		return fmt.Errorf("stdio already closed")
+	if !w.closed {
+		w.closed = true
 	}
-	w.closed = true
 	return nil
 }
 
-type stdioProxy struct {
+type stdioDialer struct {
 	stdioWrapper
 }
 
-func (p *stdioProxy) Dial(prox *proxy.Proxy) (net.Conn, error) {
+func (p *stdioDialer) Dial(ctx context.Context, desc *proxy.ProxyDescription) (net.Conn, error) {
 	if p.stdioWrapper.closed {
-		if err := p.stdioWrapper.Reopen(); err != nil {
+		if err := p.stdioWrapper.Open(); err != nil {
 			return nil, err
 		}
 	}
@@ -92,10 +90,10 @@ func (p *stdioProxy) Dial(prox *proxy.Proxy) (net.Conn, error) {
 }
 
 func init() {
-	proxy.Registry.Add(proxy.Proxy{
+	proxy.Registry.Add(proxy.ProxyDescription{
 		Scheme:      "stdio",
 		Description: "use stdio; shortcut is `-`",
-		Dialer: &stdioProxy{
+		Dialer: &stdioDialer{
 			stdioWrapper: *newStdioWrapper(),
 		},
 		Examples: []string{

@@ -5,13 +5,13 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"os/exec"
 	"strings"
 
 	"github.com/gliderlabs/ssh"
 	"github.com/pkg/sftp"
-	"golang.org/x/exp/slog"
 )
 
 type SSHServer struct {
@@ -27,7 +27,7 @@ type SSHServer struct {
 
 func NewSSHServer() *SSHServer {
 	return &SSHServer{
-		logger: slog.New(slog.NewTextHandler(os.Stderr)),
+		logger: slog.New(slog.NewTextHandler(os.Stderr, nil)),
 	}
 }
 

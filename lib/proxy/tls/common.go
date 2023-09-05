@@ -71,20 +71,20 @@ func makeVerifier(fingerprint string) (func([][]byte, [][]*x509.Certificate) err
 	}, nil
 }
 
-func ParseOptions(prox *proxy.Proxy) (*tls.Config, error) {
+func ParseOptions(desc *proxy.ProxyDescription) (*tls.Config, error) {
 	var (
 		err         error
 		verifier    func([][]byte, [][]*x509.Certificate) error
-		keyPath     = prox.GetStringOption("key_path")
-		certPath    = prox.GetStringOption("cert_path")
-		keylogFile  = prox.GetStringOption("keylog_file")
-		fingerprint = prox.GetStringOption("fingerprint")
-		skipVerify  = prox.GetBoolOption("skip_verify")
+		keyPath     = desc.GetStringOption("key_path")
+		certPath    = desc.GetStringOption("cert_path")
+		keylogFile  = desc.GetStringOption("keylog_file")
+		fingerprint = desc.GetStringOption("fingerprint")
+		skipVerify  = desc.GetBoolOption("skip_verify")
 		clientAuth  = tls.NoClientCert
 	)
 
 	var cert tls.Certificate
-	if prox.IsListener() {
+	if desc.IsListener() {
 		if keyPath == "" || certPath == "" {
 			cert, err = helper.GenTLSCertificate()
 			digest := sha256.Sum256(cert.Certificate[0])
@@ -123,7 +123,7 @@ func ParseOptions(prox *proxy.Proxy) (*tls.Config, error) {
 		tlsConfig = &tls.Config{
 			Certificates:          []tls.Certificate{cert},
 			InsecureSkipVerify:    skipVerify,
-			NextProtos:            []string{prox.GetStringOption("next_proto")},
+			NextProtos:            []string{desc.GetStringOption("next_proto")},
 			KeyLogWriter:          keylogWriter,
 			VerifyPeerCertificate: verifier,
 			ClientAuth:            clientAuth,

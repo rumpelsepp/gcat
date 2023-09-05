@@ -1,6 +1,7 @@
 package gtls
 
 import (
+	"context"
 	"crypto/tls"
 	"net"
 
@@ -9,12 +10,24 @@ import (
 
 type dialer struct{}
 
-func (d *dialer) Dial(prox *proxy.Proxy) (net.Conn, error) {
-	tlsConfig, err := ParseOptions(prox)
+func (d *dialer) Dial(ctx context.Context, desc *proxy.ProxyDescription) (net.Conn, error) {
+	tlsConfig, err := ParseOptions(desc)
 	if err != nil {
 		return nil, err
 	}
-	return tls.Dial("tcp", prox.TargetHost(), tlsConfig)
+
+	dialer := net.Dialer{}
+	tcpConn, err := dialer.DialContext(ctx, "tcp", desc.TargetHost())
+	if err != nil {
+		return nil, err
+	}
+
+	tlsConn := tls.Client(tcpConn, tlsConfig)
+	if err := tlsConn.HandshakeContext(ctx); err != nil {
+		return nil, err
+	}
+
+	return tlsConn, nil
 }
 
 type listener struct {
@@ -28,7 +41,7 @@ func (ln *listener) IsListening() bool {
 	return false
 }
 
-func (ln *listener) Listen(prox *proxy.Proxy) error {
+func (ln *listener) Listen(prox *proxy.ProxyDescription) error {
 	tlsConfig, err := ParseOptions(prox)
 	if err != nil {
 		return err
@@ -53,7 +66,7 @@ func (ln *listener) Close() error {
 }
 
 func init() {
-	proxy.Registry.Add(proxy.Proxy{
+	proxy.Registry.Add(proxy.ProxyDescription{
 		Scheme:      "tls",
 		Description: "dial to a tls host",
 		Examples: []string{
@@ -63,7 +76,7 @@ func init() {
 		BoolOptions:   BoolOptions,
 		Dialer:        &dialer{},
 	})
-	proxy.Registry.Add(proxy.Proxy{
+	proxy.Registry.Add(proxy.ProxyDescription{
 		Scheme:      "tls-listen",
 		Description: "spawn a tls listener",
 		Examples: []string{

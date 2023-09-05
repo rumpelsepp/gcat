@@ -5,20 +5,20 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/marten-seemann/webtransport-go"
+	"github.com/quic-go/webtransport-go"
 	"github.com/rumpelsepp/gcat/lib/proxy"
 )
 
 type streamWrapper struct {
 	webtransport.Stream
-	webtransport.Session
+	*webtransport.Session
 }
 
 func (s *streamWrapper) Close() error {
 	if err := s.Stream.Close(); err != nil {
 		return err
 	}
-	return s.Session.Close()
+	return s.Session.CloseWithError(1, "sessions closed")
 }
 
 func (s *streamWrapper) LocalAddr() net.Addr {
@@ -27,12 +27,12 @@ func (s *streamWrapper) LocalAddr() net.Addr {
 
 type Dialer struct{}
 
-func (d *Dialer) Dial(prox *proxy.Proxy) (net.Conn, error) {
+func (d *Dialer) Dial(ctx context.Context, desc *proxy.ProxyDescription) (net.Conn, error) {
 	var (
 		dialer webtransport.Dialer
-		url    = fmt.Sprintf("https://%s/%s", net.JoinHostPort(prox.GetStringOption("Hostname"), prox.GetStringOption("Port")), prox.GetStringOption("Path"))
+		url    = fmt.Sprintf("https://%s/%s", desc.TargetHost(), desc.GetStringOption("Path"))
 	)
-	_, session, err := dialer.Dial(context.Background(), url, nil)
+	_, session, err := dialer.Dial(ctx, url, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -43,13 +43,13 @@ func (d *Dialer) Dial(prox *proxy.Proxy) (net.Conn, error) {
 	}
 
 	return &streamWrapper{
-		Session: *session,
+		Session: session,
 		Stream:  stream,
 	}, nil
 }
 
 func init() {
-	proxy.Registry.Add(proxy.Proxy{
+	proxy.Registry.Add(proxy.ProxyDescription{
 		Scheme:           "wt",
 		Description:      "dial to a webtransport endpoint",
 		SupportsMultiple: true,

@@ -1,11 +1,13 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net"
 
 	"github.com/rumpelsepp/gcat/lib/helper"
 	"github.com/rumpelsepp/gcat/lib/proxy"
+
 	_ "github.com/rumpelsepp/gcat/lib/proxy/exec"
 	_ "github.com/rumpelsepp/gcat/lib/proxy/quic"
 	_ "github.com/rumpelsepp/gcat/lib/proxy/stdio"
@@ -18,8 +20,9 @@ import (
 )
 
 type mainLoop struct {
-	proxyLeft  *proxy.Proxy
-	proxyRight *proxy.Proxy
+	proxyLeft  *proxy.ProxyDescription
+	proxyRight *proxy.ProxyDescription
+	ctx        context.Context
 }
 
 func CreateLoop(addrLeft, addrRight string) (*mainLoop, error) {
@@ -33,12 +36,12 @@ func CreateLoop(addrLeft, addrRight string) (*mainLoop, error) {
 		return nil, err
 	}
 
-	proxyLeft, err := proxy.Registry.CreateProxyInstance(addrLeftParsed)
+	proxyLeft, err := proxy.Registry.FindAndCreateProxy(addrLeftParsed)
 	if err != nil {
 		return nil, err
 	}
 
-	proxyRight, err := proxy.Registry.CreateProxyInstance(addrRightParsed)
+	proxyRight, err := proxy.Registry.FindAndCreateProxy(addrRightParsed)
 	if err != nil {
 		return nil, err
 	}
@@ -46,10 +49,11 @@ func CreateLoop(addrLeft, addrRight string) (*mainLoop, error) {
 	return &mainLoop{
 		proxyLeft:  proxyLeft,
 		proxyRight: proxyRight,
+		ctx:        context.Background(),
 	}, nil
 }
 
-func (l *mainLoop) CheckMultiple() bool {
+func (l *mainLoop) SupportsMultiple() bool {
 	if !l.proxyLeft.SupportsMultiple || !l.proxyRight.SupportsMultiple {
 		return false
 	}
@@ -57,12 +61,12 @@ func (l *mainLoop) CheckMultiple() bool {
 }
 
 func (l *mainLoop) Connect() (net.Conn, net.Conn, error) {
-	connLeft, err := l.proxyLeft.Connect()
+	connLeft, err := l.proxyLeft.Connect(l.ctx)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	connRight, err := l.proxyRight.Connect()
+	connRight, err := l.proxyRight.Connect(l.ctx)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -110,19 +114,8 @@ command.
 				return err
 			}
 
-			if proxyOpts.loop {
-				for {
-					lConn, rConn, err := loop.Connect()
-					if err != nil {
-						return err
-					}
-
-					helper.BidirectCopy(lConn, rConn)
-				}
-			}
-
 			if proxyOpts.parallel {
-				if !loop.CheckMultiple() {
+				if !loop.SupportsMultiple() {
 					return fmt.Errorf("multiple connections not supported by chosen pipeline")
 				}
 
@@ -133,6 +126,17 @@ command.
 					}
 
 					go helper.BidirectCopy(lConn, rConn)
+				}
+			}
+
+			if proxyOpts.loop {
+				for {
+					lConn, rConn, err := loop.Connect()
+					if err != nil {
+						return err
+					}
+
+					helper.BidirectCopy(lConn, rConn)
 				}
 			}
 

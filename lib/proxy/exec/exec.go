@@ -1,6 +1,7 @@
 package gexec
 
 import (
+	"context"
 	"io"
 	"net"
 	"os"
@@ -63,21 +64,21 @@ func dialCommand(command *exec.Cmd, target *proxy.ProxyAddr) (*cmdConn, error) {
 
 type execDialer struct{}
 
-func (d *execDialer) Dial(prox *proxy.Proxy) (net.Conn, error) {
+func (d *execDialer) Dial(ctx context.Context, desc *proxy.ProxyDescription) (net.Conn, error) {
 	var (
-		cmd      = prox.GetStringOption("cmd")
+		cmd      = desc.GetStringOption("cmd")
 		cmdParts = strings.Split(cmd, " ")
-		command  = exec.Command(cmdParts[0], cmdParts[1:]...)
+		command  = exec.CommandContext(ctx, cmdParts[0], cmdParts[1:]...)
 	)
 
-	return dialCommand(command, prox.Target())
+	return dialCommand(command, desc.Target())
 }
 
 type shellDialer struct{}
 
-func (d *shellDialer) Dial(prox *proxy.Proxy) (net.Conn, error) {
+func (d *shellDialer) Dial(ctx context.Context, desc *proxy.ProxyDescription) (net.Conn, error) {
 	var (
-		cmd   = prox.GetStringOption("cmd")
+		cmd   = desc.GetStringOption("cmd")
 		shell = os.Getenv("SHELL")
 	)
 
@@ -85,11 +86,11 @@ func (d *shellDialer) Dial(prox *proxy.Proxy) (net.Conn, error) {
 		shell = "sh"
 	}
 
-	return dialCommand(exec.Command(shell, "-c", cmd), prox.Target())
+	return dialCommand(exec.Command(shell, "-c", cmd), desc.Target())
 }
 
 func init() {
-	proxy.Registry.Add(proxy.Proxy{
+	proxy.Registry.Add(proxy.ProxyDescription{
 		Scheme:      "exec",
 		Description: "spawn a programm and connect via stdio",
 		Dialer:      &execDialer{},
@@ -105,7 +106,7 @@ func init() {
 		},
 	})
 
-	proxy.Registry.Add(proxy.Proxy{
+	proxy.Registry.Add(proxy.ProxyDescription{
 		Scheme:      "system",
 		Description: "execute `cmd` via a shell and connect via stdio",
 		Dialer:      &shellDialer{},

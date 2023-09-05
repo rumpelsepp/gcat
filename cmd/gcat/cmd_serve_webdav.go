@@ -1,11 +1,11 @@
 package main
 
 import (
+	"log/slog"
 	"os"
 
 	"github.com/rumpelsepp/gcat/lib/server/webdav"
 	"github.com/spf13/cobra"
-	"golang.org/x/exp/slog"
 )
 
 type serveWebDAVOptions struct {
@@ -20,7 +20,7 @@ var (
 		Short: "spawn a WebDAV server",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			srv := webdav.WebDAVServer{
-				Logger: slog.New(slog.NewTextHandler(os.Stderr)),
+				Logger: slog.New(slog.NewTextHandler(os.Stderr, nil)),
 				Root:   serveWebDAVOpts.root,
 				Listen: serveWebDAVOpts.address,
 			}

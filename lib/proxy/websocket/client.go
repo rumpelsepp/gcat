@@ -11,10 +11,9 @@ import (
 
 type dialer struct{}
 
-func (p *dialer) Dial(prox *proxy.Proxy) (net.Conn, error) {
+func (p *dialer) Dial(ctx context.Context, desc *proxy.ProxyDescription) (net.Conn, error) {
 	var (
-		target  = fmt.Sprintf("%s://%s%s", prox.Scheme, net.JoinHostPort(prox.GetStringOption("Hostname"), prox.GetStringOption("Port")), prox.GetStringOption("Path"))
-		ctx     = context.Background()
+		target  = fmt.Sprintf("%s://%s%s", desc.Scheme, desc.TargetHost(), desc.GetStringOption("Path"))
 		options = websocket.DialOptions{}
 	)
 	wsConn, _, err := websocket.Dial(ctx, target, &options)
@@ -25,7 +24,7 @@ func (p *dialer) Dial(prox *proxy.Proxy) (net.Conn, error) {
 }
 
 func init() {
-	proxy.Registry.Add(proxy.Proxy{
+	proxy.Registry.Add(proxy.ProxyDescription{
 		Scheme:      "ws",
 		Description: "connect websocket host over http",
 		Dialer:      &dialer{},
@@ -34,7 +33,7 @@ func init() {
 		},
 		StringOptions: options,
 	})
-	proxy.Registry.Add(proxy.Proxy{
+	proxy.Registry.Add(proxy.ProxyDescription{
 		Scheme:      "wss",
 		Description: "connect websocket host over https",
 		Dialer:      &dialer{},

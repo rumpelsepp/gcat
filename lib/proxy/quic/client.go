@@ -5,17 +5,17 @@ import (
 	"crypto/tls"
 	"net"
 
-	"github.com/lucas-clemente/quic-go"
+	"github.com/quic-go/quic-go"
 	"github.com/rumpelsepp/gcat/lib/proxy"
 	gtls "github.com/rumpelsepp/gcat/lib/proxy/tls"
 )
 
-type ProxyQuic struct {
+type QUICDialer struct {
 	tlsConfig  *tls.Config
 	quicConfig *quic.Config
 }
 
-func (p *ProxyQuic) Dial(prox *proxy.Proxy) (net.Conn, error) {
+func (p *QUICDialer) Dial(ctx context.Context, prox *proxy.ProxyDescription) (net.Conn, error) {
 	var (
 		stream quic.Stream
 		err    error
@@ -31,29 +31,28 @@ func (p *ProxyQuic) Dial(prox *proxy.Proxy) (net.Conn, error) {
 		p.quicConfig = quicConfig
 	}
 
-	conn, err := quic.DialAddr(net.JoinHostPort(prox.GetStringOption("Hostname"), prox.GetStringOption("Port")), p.tlsConfig, p.quicConfig)
+	conn, err := quic.DialAddr(ctx, prox.TargetHost(), p.tlsConfig, p.quicConfig)
 	if err != nil {
 		return nil, err
 	}
 
 	if !p.quicConfig.EnableDatagrams {
-		stream, err = conn.OpenStreamSync(context.Background())
+		stream, err = conn.OpenStreamSync(ctx)
 		if err != nil {
 			return nil, err
 		}
 	}
-	return &connWrapper{
-		useDatagrams: p.quicConfig.EnableDatagrams,
-		conn:         conn,
-		stream:       stream,
+	return &streamWrapper{
+		conn:   conn,
+		stream: stream,
 	}, nil
 }
 
 func init() {
-	proxy.Registry.Add(proxy.Proxy{
+	proxy.Registry.Add(proxy.ProxyDescription{
 		Scheme:      "quic",
-		Dialer:      &ProxyQuic{},
-		Description: "connect to a quic host:port",
+		Dialer:      &QUICDialer{},
+		Description: "connect to a quic host:port and open one stream",
 		Examples: []string{
 			"$ gcat proxy quic://localhost:1234 -",
 		},

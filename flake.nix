@@ -9,11 +9,10 @@
     in {
       devShell.x86_64-linux = pkgs.mkShell {
         buildInputs = with pkgs; [
-          go_1_19
+          go_1_21
           gnumake
           gopls
           gotools
-          efm-langserver
         ];
       };
       formatter.x86_64-linux = pkgs.nixpkgs-fmt;

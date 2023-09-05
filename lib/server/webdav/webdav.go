@@ -3,10 +3,10 @@ package webdav
 import (
 	"crypto/tls"
 	"fmt"
+	"log/slog"
 	"net/http"
 
 	"github.com/rumpelsepp/gcat/lib/helper"
-	"golang.org/x/exp/slog"
 	"golang.org/x/net/webdav"
 )
 
