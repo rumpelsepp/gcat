@@ -24,7 +24,7 @@ func (s *WebDAVServer) Run() error {
 			if err != nil {
 				s.Logger.Warn(fmt.Sprintf("[%s]: %s, %s", r.Method, r.URL, err))
 			} else {
-				s.Logger.Warn(fmt.Sprintf("[%s]: %s", r.Method, r.URL))
+				s.Logger.Debug(fmt.Sprintf("[%s]: %s", r.Method, r.URL))
 			}
 		},
 	}

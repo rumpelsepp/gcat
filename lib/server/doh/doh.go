@@ -10,10 +10,9 @@ import (
 	"net/netip"
 	"sync"
 
-	"github.com/rumpelsepp/gcat/lib/helper"
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
+	"github.com/jba/muxpatterns"
 	"github.com/miekg/dns"
+	"github.com/rumpelsepp/gcat/lib/helper"
 )
 
 const mime = "application/dns-message"
@@ -123,15 +122,11 @@ func (s *DoHServer) postRequest(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *DoHServer) Run() error {
-	r := chi.NewRouter()
-	r.Use(middleware.RequestID)
-	r.Use(middleware.RealIP)
-	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer)
-	r.Get(s.Path, s.getRequest)
-	r.Post(s.Path, s.postRequest)
+	handler := muxpatterns.NewServeMux()
+	handler.HandleFunc(fmt.Sprintf("GET %s", s.Path), s.getRequest)
+	handler.HandleFunc(fmt.Sprintf("POST %s", s.Path), s.postRequest)
 
-	httpServer, err := helper.NewHTTPServer(r, s.Listen, s.RequestLog, s.TLSConfig)
+	httpServer, err := helper.NewHTTPServer(handler, s.Listen, s.RequestLog, s.TLSConfig)
 	if err != nil {
 		return err
 	}

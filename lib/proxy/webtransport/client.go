@@ -25,9 +25,9 @@ func (s *streamWrapper) LocalAddr() net.Addr {
 	return s.Session.LocalAddr()
 }
 
-type Dialer struct{}
+type dialer struct{}
 
-func (d *Dialer) Dial(ctx context.Context, desc *proxy.ProxyDescription) (net.Conn, error) {
+func (d *dialer) Dial(ctx context.Context, desc *proxy.ProxyDescription) (net.Conn, error) {
 	var (
 		dialer webtransport.Dialer
 		url    = fmt.Sprintf("https://%s/%s", desc.TargetHost(), desc.GetStringOption("Path"))
@@ -37,7 +37,7 @@ func (d *Dialer) Dial(ctx context.Context, desc *proxy.ProxyDescription) (net.Co
 		return nil, err
 	}
 
-	stream, err := session.OpenStream()
+	stream, err := session.OpenStreamSync(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +53,7 @@ func init() {
 		Scheme:           "wt",
 		Description:      "dial to a webtransport endpoint",
 		SupportsMultiple: true,
-		Dialer:           &Dialer{},
+		Dialer:           &dialer{},
 		Examples: []string{
 			"$ gcat proxy wt://localhost:1234/wt -",
 		},

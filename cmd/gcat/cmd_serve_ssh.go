@@ -6,11 +6,11 @@ import (
 )
 
 var (
-	sshServer = gssh.NewSSHServer()
-	serveSSHCmd   = &cobra.Command{
+	sshServer   = gssh.NewSSHServer()
+	serveSSHCmd = &cobra.Command{
 		Use:   "ssh",
 		Short: "spawn a SSH server with SFTP support",
-		RunE: func (cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			return sshServer.Run()
 		},
 	}

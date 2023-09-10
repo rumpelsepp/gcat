@@ -104,7 +104,7 @@ func (srv *SSHServer) makeSSHSessionHandler(shell string) ssh.Handler {
 			}
 
 		default:
-			srv.logger.Error("No PTY requested, no command supplied", nil)
+			srv.logger.Error("No PTY requested, no command supplied")
 		}
 	}
 }

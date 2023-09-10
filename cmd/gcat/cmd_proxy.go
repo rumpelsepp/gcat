@@ -7,6 +7,7 @@ import (
 
 	"github.com/rumpelsepp/gcat/lib/helper"
 	"github.com/rumpelsepp/gcat/lib/proxy"
+	"github.com/spf13/cobra"
 
 	_ "github.com/rumpelsepp/gcat/lib/proxy/exec"
 	_ "github.com/rumpelsepp/gcat/lib/proxy/quic"
@@ -16,7 +17,6 @@ import (
 	_ "github.com/rumpelsepp/gcat/lib/proxy/unix"
 	_ "github.com/rumpelsepp/gcat/lib/proxy/websocket"
 	_ "github.com/rumpelsepp/gcat/lib/proxy/webtransport"
-	"github.com/spf13/cobra"
 )
 
 type mainLoop struct {

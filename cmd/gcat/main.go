@@ -25,6 +25,7 @@ func getVersion() string {
 		}
 		builder.WriteString(fmt.Sprintf("%s: %s\n", setting.Key, setting.Value))
 	}
+
 	return strings.TrimSpace(builder.String())
 }
 

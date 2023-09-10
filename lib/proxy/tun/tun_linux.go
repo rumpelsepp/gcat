@@ -26,12 +26,12 @@ func createNativeTUN(dev string) (*nativeTUN, error) {
 		return nil, err
 	}
 
-	uid, err := strconv.Atoi(u.Uid)
+	uid, err := strconv.ParseInt(u.Uid, 0, 32)
 	if err != nil {
 		return nil, err
 	}
 
-	gid, err := strconv.Atoi(u.Gid)
+	gid, err := strconv.ParseInt(u.Gid, 0, 32)
 	if err != nil {
 		return nil, err
 	}

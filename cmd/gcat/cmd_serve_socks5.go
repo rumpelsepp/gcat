@@ -1,9 +1,7 @@
 package main
 
 import (
-	"log/slog"
-	"os"
-
+	"github.com/rumpelsepp/gcat/lib/helper"
 	"github.com/rumpelsepp/gcat/lib/server/socks5"
 	"github.com/spf13/cobra"
 )
@@ -27,7 +25,7 @@ var (
 
 			srv := socks5.Server{
 				Listen:   serveSOCKS5Opts.listen,
-				Logger:   slog.New(slog.NewTextHandler(os.Stderr, nil)),
+				Logger:   helper.GetLogger(),
 				Auth:     auth,
 				Username: serveSOCKS5Opts.username,
 				Password: serveSOCKS5Opts.password,
