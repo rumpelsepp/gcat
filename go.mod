@@ -11,7 +11,7 @@ require (
 	github.com/jedib0t/go-pretty/v6 v6.4.7
 	github.com/miekg/dns v1.1.55
 	github.com/pkg/sftp v1.13.6
-	github.com/quic-go/quic-go v0.38.1
+	github.com/quic-go/quic-go v0.39.0
 	github.com/quic-go/webtransport-go v0.5.3
 	github.com/spf13/cobra v1.7.0
 	github.com/vishvananda/netlink v1.2.1-beta.2
@@ -33,7 +33,6 @@ require (
 	github.com/fatih/color v1.15.0 // indirect
 	github.com/felixge/httpsnoop v1.0.3 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
-	github.com/golang/mock v1.6.0 // indirect
 	github.com/gomarkdown/markdown v0.0.0-20230716120725-531d2d74bc12 // indirect
 	github.com/google/pprof v0.0.0-20230906154834-20cde9067b3b // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
@@ -51,6 +50,7 @@ require (
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/vishvananda/netns v0.0.4 // indirect
+	go.uber.org/mock v0.3.0 // indirect
 	golang.org/x/crypto v0.13.0 // indirect
 	golang.org/x/image v0.12.0 // indirect
 	golang.org/x/mod v0.12.0 // indirect
