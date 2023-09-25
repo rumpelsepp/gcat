@@ -9,7 +9,7 @@ require (
 	github.com/gorilla/handlers v1.5.1
 	github.com/jba/muxpatterns v0.3.0
 	github.com/jedib0t/go-pretty/v6 v6.4.7
-	github.com/miekg/dns v1.1.55
+	github.com/miekg/dns v1.1.56
 	github.com/pkg/sftp v1.13.6
 	github.com/quic-go/quic-go v0.39.0
 	github.com/quic-go/webtransport-go v0.6.0
