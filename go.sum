@@ -84,8 +84,8 @@ github.com/gorilla/websocket v1.5.0 h1:PPwGk2jz7EePpoHN/+ClbZu8SPxiqlu12wZP/3sWm
 github.com/gorilla/websocket v1.5.0/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
 github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2s0bqwp9tc8=
 github.com/inconshreveable/mousetrap v1.1.0/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=
-github.com/jba/muxpatterns v0.2.0 h1:Hh5KZaEeaQPMzedDr3XgZBpW2BhYohCB5vf0FgXTyG4=
-github.com/jba/muxpatterns v0.2.0/go.mod h1:77+op56At17SXLuQrR46FWJybINlMcj2E/KrDhS5JiY=
+github.com/jba/muxpatterns v0.3.0 h1:4mumR8LmA/7vUigN/BmUXtHXbwZOzggVuX9Dgqtw67c=
+github.com/jba/muxpatterns v0.3.0/go.mod h1:77+op56At17SXLuQrR46FWJybINlMcj2E/KrDhS5JiY=
 github.com/jedib0t/go-pretty/v6 v6.4.7 h1:lwiTJr1DEkAgzljsUsORmWsVn5MQjt1BPJdPCtJ6KXE=
 github.com/jedib0t/go-pretty/v6 v6.4.7/go.mod h1:Ndk3ase2CkQbXLLNf5QDHoYb6J9WtVfmHZu9n8rk2xs=
 github.com/jlaffaye/ftp v0.0.0-20190624084859-c1312a7102bf/go.mod h1:lli8NYPQOFy3O++YmYbqVgOcQ1JPCwdOy+5zSjKJ9qY=

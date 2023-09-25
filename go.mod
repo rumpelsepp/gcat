@@ -7,7 +7,7 @@ require (
 	github.com/creack/pty v1.1.18
 	github.com/gliderlabs/ssh v0.3.5
 	github.com/gorilla/handlers v1.5.1
-	github.com/jba/muxpatterns v0.2.0
+	github.com/jba/muxpatterns v0.3.0
 	github.com/jedib0t/go-pretty/v6 v6.4.7
 	github.com/miekg/dns v1.1.55
 	github.com/pkg/sftp v1.13.6
